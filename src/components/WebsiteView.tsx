@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { FOUR_CORE_SERVICES } from '../data/scopeData';
 import { SiteSafeLogo } from './shared/SiteSafeLogo';
 import confetti from 'canvas-confetti';
@@ -30,10 +30,24 @@ import {
   Menu,
   X,
   ExternalLink,
-  Lock
+  Lock,
+  Info,
+  UploadCloud,
+  FileCheck,
+  Paperclip
 } from 'lucide-react';
 
 export type WebsitePage = 'home' | 'services' | 'individual-booking' | 'employer-booking' | 'about' | 'contact' | 'privacy' | 'terms';
+
+export const SERVICE_OPTIONS = [
+  { id: 'cscs-card-app', name: 'CSCS Card Application', price: '£55 + VAT' },
+  { id: 'citb-hse-test', name: 'CITB Health, Safety & Environment Test', price: '£50' },
+  { id: 'training-courses', name: 'Training Courses', price: '£200 + VAT' },
+  { id: 'green-labourer-pkg', name: 'Green Labourer Card Package', price: '£295 + VAT' },
+  { id: 'other', name: 'Other (please specify)', price: '' },
+];
+
+export const CONFIRMATION_NOTE = "Please select the service you require. Once we receive your request, our team will review the information and contact you to confirm the correct service and complete the booking process.";
 
 interface WebsiteViewProps {
   initialPage?: WebsitePage;
@@ -47,77 +61,51 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'package' | 'test' | 'course'>('all');
   const [bookingSuccess, setBookingSuccess] = useState<string | null>(null);
 
-  // Individual Booking Form State
+  // Book for Yourself Form State
   const [indivForm, setIndivForm] = useState({
-    course: 'green-labourer-pkg',
-    delivery: 'pearson-vue',
-    date: '2026-09-18',
-    location: 'London East (Canary Wharf Hub)',
-    firstName: 'David',
-    lastName: 'O\'Connor',
-    dob: '1989-05-14',
-    nationalInsurance: 'QQ 12 34 56 A',
-    citbRegistration: 'CITB-892145',
-    email: 'david.oconnor@gmail.com',
-    phone: '+44 7911 123456',
-    address: '14 Rotherhithe Street, London SE16 5DJ',
-    specialRequirements: 'Require Welsh language audio if available',
-    gdpr: true,
+    fullName: '',
+    email: '',
+    phone: '',
+    serviceRequired: 'CSCS Card Application',
+    otherService: '',
+    preferredDate: '',
+    additionalNotes: '',
   });
 
-  // Employer Corporate Form State
+  // Book for Your Employees Form State
   const [employerForm, setEmployerForm] = useState({
-    companyName: 'Balfour Beatty Construction Ltd',
-    companyReg: '00984124',
-    vatNumber: 'GB 123 4567 89',
-    citbLevyNumber: 'LEV-782145',
-    contactName: 'Sarah Jenkins',
-    contactRole: 'Group Health & Safety Director',
-    contactEmail: 's.jenkins@balfourbeatty-example.co.uk',
-    contactPhone: '+44 20 7946 0912',
-    billingAddress: '5 Churchill Place, Canary Wharf, London E14 5HU',
-    poNumber: 'PO-BB-2026-0941',
-    paymentMethod: 'invoice',
-    courseId: 'green-labourer-pkg',
-    deliveryMode: 'on-site',
-    cohortSize: 6,
-    preferredDates: 'October 2026 Cohort A',
-    notes: 'Please dispatch instructor to our Battersea Power Station Phase 3 Site Welfare Office.'
+    contactName: '',
+    companyName: '',
+    email: '',
+    phone: '',
+    companyAddress: '',
+    numberOfEmployees: '',
+    serviceRequired: 'Green Labourer Card Package',
+    otherService: '',
+    employeeListFile: null as File | null,
+    additionalNotes: '',
   });
 
-  // Delegate Roster for Corporate Bookings
-  const [delegates, setDelegates] = useState([
-    { id: '1', firstName: 'Mark', lastName: 'Thompson', dob: '1985-04-12', nationalInsurance: 'NR 44 55 66 B', email: 'm.thompson@example.co.uk', phone: '+44 7123 000001', citbNumber: 'CITB-01928' },
-    { id: '2', firstName: 'Liam', lastName: 'Davies', dob: '1992-08-23', nationalInsurance: 'NR 77 88 99 C', email: 'l.davies@example.co.uk', phone: '+44 7123 000002', citbNumber: 'CITB-04821' },
-    { id: '3', firstName: 'Jack', lastName: 'Wilson', dob: '1990-11-04', nationalInsurance: 'NR 11 22 33 D', email: 'j.wilson@example.co.uk', phone: '+44 7123 000003', citbNumber: 'CITB-08392' },
-  ]);
-
-  const addDelegateRow = () => {
-    const newId = (delegates.length + 1).toString();
-    setDelegates([...delegates, {
-      id: newId,
-      firstName: '',
-      lastName: '',
-      dob: '',
-      nationalInsurance: '',
-      email: '',
-      phone: '',
-      citbNumber: ''
-    }]);
-  };
-
-  const removeDelegateRow = (id: string) => {
-    if (delegates.length <= 1) return;
-    setDelegates(delegates.filter(d => d.id !== id));
-  };
-
-  const getCoursePrice = (courseKey: string) => {
-    switch (courseKey) {
-      case 'citb-hse-test': return { label: '£50 incl. VAT', amount: 50, vatIncluded: true };
-      case 'cscs-card-app': return { label: '£65 incl. VAT', amount: 65, vatIncluded: true };
-      case 'l1-hs-course': return { label: '£200 incl. VAT', amount: 200, vatIncluded: true };
-      case 'green-labourer-pkg': return { label: '£320 incl. VAT', amount: 320, vatIncluded: true };
-      default: return { label: '£320 incl. VAT', amount: 320, vatIncluded: true };
+  const getCoursePrice = (serviceNameOrKey: string) => {
+    switch (serviceNameOrKey) {
+      case 'citb-hse-test':
+      case 'CITB Health, Safety & Environment Test':
+        return { label: '£50', amount: 50, vatIncluded: false };
+      case 'cscs-card-app':
+      case 'CSCS Card Application':
+        return { label: '£55 + VAT', amount: 55, vatIncluded: true };
+      case 'training-courses':
+      case 'l1-hs-course':
+      case 'Training Courses':
+        return { label: '£200 + VAT', amount: 200, vatIncluded: true };
+      case 'green-labourer-pkg':
+      case 'Green Labourer Card Package':
+        return { label: '£295 + VAT', amount: 295, vatIncluded: true };
+      case 'other':
+      case 'Other (please specify)':
+        return { label: 'Quote on review', amount: 0, vatIncluded: false };
+      default:
+        return { label: '£295 + VAT', amount: 295, vatIncluded: true };
     }
   };
 
@@ -125,7 +113,10 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
     e.preventDefault();
     confetti({ particleCount: 90, spread: 75, origin: { y: 0.6 } });
     const ref = `SSA-${Math.floor(100000 + Math.random() * 900000)}`;
-    setBookingSuccess(`Booking Confirmed! Candidate ${indivForm.firstName} ${indivForm.lastName} enrolled. Confirmation email and SMS instructions dispatched. Booking Reference: ${ref}`);
+    const serviceName = indivForm.serviceRequired === 'Other (please specify)' 
+      ? (indivForm.otherService || 'Other service') 
+      : indivForm.serviceRequired;
+    setBookingSuccess(`Request received for ${indivForm.fullName}! Our team will review your request for "${serviceName}" and contact you at ${indivForm.phone || indivForm.email} to confirm the correct service and complete the booking process. (Ref: ${ref})`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -133,7 +124,10 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
     e.preventDefault();
     confetti({ particleCount: 110, spread: 85, origin: { y: 0.6 } });
     const ref = `CORP-SSA-${Math.floor(100000 + Math.random() * 900000)}`;
-    setBookingSuccess(`Corporate Cohort Order Registered! ${delegates.length} delegates enrolled for ${employerForm.companyName}. PO ${employerForm.poNumber} verified with 30-day billing terms. Booking Reference: ${ref}`);
+    const serviceName = employerForm.serviceRequired === 'Other (please specify)' 
+      ? (employerForm.otherService || 'Other service') 
+      : employerForm.serviceRequired;
+    setBookingSuccess(`Corporate request received for ${employerForm.companyName} (${employerForm.contactName})! Our team will review your enquiry for "${serviceName}" (${employerForm.numberOfEmployees ? `${employerForm.numberOfEmployees} employees` : 'group cohort'}) and contact you at ${employerForm.phone || employerForm.email} to confirm the correct service and complete the booking process. (Ref: ${ref})`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -145,52 +139,52 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
 
   const allCourses = [
     {
-      id: 'green-labourer-pkg',
-      title: 'Green Labourer Card Package',
+      id: 'cscs-card-app',
+      title: 'CSCS Card Application',
       category: 'core',
-      price: '£320 incl. VAT',
-      amount: 320,
-      duration: 'Complete Route',
-      cert: 'All-In-One Solution',
-      highlight: true,
-      description: 'The complete statutory package: Level 1 Health & Safety Course + CITB HS&E Touchscreen Test + Official 5-Year Green CSCS Card with free retake protection.',
-      features: ['Regulated Level 1 H&S Course', 'CITB Touchscreen Test Booking', 'Official CSCS Card Application', '100% Free Retake Guarantee']
+      price: '£55 + VAT',
+      amount: 55,
+      duration: '24–48h Dispatch',
+      cert: 'Official CSCS Card',
+      highlight: false,
+      description: 'Official CSCS Card application and verification processing service. Automated test verification and express smart card delivery.',
+      features: ['Qualification & test verification', 'Digital smart pass access', 'Physical smart card dispatch', 'Dedicated application coordinator']
     },
     {
       id: 'citb-hse-test',
       title: 'CITB Health, Safety & Environment Test',
       category: 'core',
-      price: '£50 incl. VAT',
+      price: '£50',
       amount: 50,
       duration: '45 Mins',
-      cert: 'Pearson VUE / CITB',
+      cert: 'Pearson VUE Network',
       highlight: false,
       description: 'Official 45-minute touchscreen test required for all CSCS cards. Conducted across 150+ UK Pearson VUE testing centres with immediate score printout.',
-      features: ['Operatives & Specialists test options', '150+ Pearson VUE UK centres', 'Same-day & next-day slots', 'Direct CITB database sync']
+      features: ['Operatives & Specialists test options', '150+ Pearson VUE UK centres', 'Same-day & next-day slots', 'Immediate score report printout']
     },
     {
-      id: 'cscs-card-app',
-      title: 'CSCS Card Application',
+      id: 'training-courses',
+      title: 'Training Courses',
       category: 'core',
-      price: '£65 incl. VAT',
-      amount: 65,
-      duration: '24-48h Express',
-      cert: 'Official CSCS Partner',
-      highlight: false,
-      description: 'Fast-track official CSCS card application and verification processing. Includes instant digital wallet smart pass and physical NFC card dispatch.',
-      features: ['Qualification & test verification', 'Digital pass in 24 hours', 'Physical card postal dispatch', 'Direct employer check API']
-    },
-    {
-      id: 'l1-hs-course',
-      title: 'Level 1 Health & Safety in a Construction Environment',
-      category: 'core',
-      price: '£200 incl. VAT',
+      price: '£200 + VAT',
       amount: 200,
       duration: '1 Day',
-      cert: 'CITB ATO / Ofqual Lifetime',
+      cert: '1-Day Level 1 Course',
       highlight: false,
-      description: 'Accredited 1-day course providing the mandatory lifetime qualification for the 5-Year Green CSCS Labourer Card. Classroom or remote invigilated options.',
+      description: 'Accredited 1-day Level 1 Health & Safety in a Construction Environment course providing the lifetime qualification for the 5-Year Green CSCS Labourer Card.',
       features: ['Lifetime qualification (never expires)', 'Classroom or live online format', 'Ofqual regulated syllabus', 'Free comprehensive study pack']
+    },
+    {
+      id: 'green-labourer-pkg',
+      title: 'Green Labourer Card Package',
+      category: 'core',
+      price: '£295 + VAT',
+      amount: 295,
+      duration: 'Complete Route',
+      cert: 'All-In-One Solution',
+      highlight: true,
+      description: 'Complete all-in-one package: 1-Day Level 1 Health & Safety Course + CITB HS&E Touchscreen Test + Official 5-Year Green CSCS Card with free retake support.',
+      features: ['Regulated Level 1 H&S Course', 'CITB Touchscreen Test Booking', 'Official CSCS Card Application', 'Full support & free retake guidance']
     }
   ];
 
@@ -203,32 +197,6 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans flex flex-col selection:bg-[#263B52] selection:text-white" id="sitesafe-live-portal">
-      {/* 1. TOP UTILITY BANNER */}
-      <div className="bg-[#263B52] text-white text-xs py-2 px-4 sm:px-8 border-b border-[#1B2A3B]">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3 text-[11px] font-medium text-slate-300">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold border border-emerald-500/30">
-              <ShieldCheck className="w-3 h-3 text-emerald-400" />
-              CITB ATO APPROVED #9841
-            </span>
-            <span className="hidden sm:inline text-slate-400">&bull;</span>
-            <span className="hidden sm:inline">Pearson VUE Authorised Network &bull; 150+ UK Testing Centres</span>
-          </div>
-
-          <div className="flex items-center gap-4 text-[11px]">
-            <a 
-              href="tel:+442036084780" 
-              className="inline-flex items-center gap-1.5 text-white font-mono font-bold bg-[#78A6B8]/25 hover:bg-[#78A6B8]/40 px-3 py-0.5 rounded-full transition-all border border-[#78A6B8]/40"
-              title="Call Central Aircall Booking Desk"
-            >
-              <PhoneCall className="w-3 h-3 text-[#78A6B8]" />
-              <span>Hotline: +44 20 3608 4780</span>
-            </a>
-            <span className="hidden md:inline text-slate-400 font-mono">07:30 – 18:30 GMT</span>
-          </div>
-        </div>
-      </div>
-
       {/* 2. PRIMARY LIVE WEBSITE NAVBAR */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3.5 flex items-center justify-between gap-4">
@@ -238,7 +206,7 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
             className="cursor-pointer transition-transform active:scale-98"
             id="brand-logo-link"
           >
-            <SiteSafeLogo variant="horizontal" size="md" theme="light" showTagline={true} />
+            <SiteSafeLogo variant="horizontal" size="md" theme="light" showTagline={false} />
           </div>
 
           {/* Desktop Navigation Links */}
@@ -257,7 +225,15 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
                 currentPage === 'services' ? 'text-[#263B52] font-bold border-b-2 border-[#263B52]' : ''
               }`}
             >
-              Core Services &amp; Pricing
+              Services &amp; Pricing
+            </button>
+            <button 
+              onClick={() => navigateTo('individual-booking')}
+              className={`transition-colors hover:text-[#263B52] pb-1 cursor-pointer ${
+                currentPage === 'individual-booking' ? 'text-[#263B52] font-bold border-b-2 border-[#263B52]' : ''
+              }`}
+            >
+              Book for Yourself
             </button>
             <button 
               onClick={() => navigateTo('employer-booking')}
@@ -265,7 +241,7 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
                 currentPage === 'employer-booking' ? 'text-[#263B52] font-bold border-b-2 border-[#263B52]' : ''
               }`}
             >
-              Corporate &amp; Groups
+              Book for Your Employees
             </button>
             <button 
               onClick={() => navigateTo('about')}
@@ -293,7 +269,7 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
               id="header-book-individual-btn"
             >
               <User className="w-3.5 h-3.5 text-[#78A6B8]" />
-              <span>Book Candidate</span>
+              <span>Book for Yourself</span>
             </button>
 
             <button
@@ -302,7 +278,7 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
               id="header-book-employer-btn"
             >
               <Building2 className="w-3.5 h-3.5 text-slate-600" />
-              <span>Employer Portal</span>
+              <span>Book for Your Employees</span>
             </button>
 
             {/* Mobile Hamburger Toggle */}
@@ -321,9 +297,9 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
           <div className="lg:hidden bg-white border-b border-slate-200 px-4 py-4 space-y-3 text-xs shadow-lg">
             <div className="flex flex-col space-y-2 font-medium text-slate-700">
               <button onClick={() => navigateTo('home')} className="text-left py-2 px-3 rounded hover:bg-slate-50">Home</button>
-              <button onClick={() => navigateTo('services')} className="text-left py-2 px-3 rounded hover:bg-slate-50">Core Services &amp; Pricing</button>
-              <button onClick={() => navigateTo('individual-booking')} className="text-left py-2 px-3 rounded hover:bg-slate-50">Book Individual Candidate</button>
-              <button onClick={() => navigateTo('employer-booking')} className="text-left py-2 px-3 rounded hover:bg-slate-50">Corporate Cohort Booking</button>
+              <button onClick={() => navigateTo('services')} className="text-left py-2 px-3 rounded hover:bg-slate-50">Services &amp; Pricing</button>
+              <button onClick={() => navigateTo('individual-booking')} className="text-left py-2 px-3 rounded hover:bg-slate-50">Book for Yourself</button>
+              <button onClick={() => navigateTo('employer-booking')} className="text-left py-2 px-3 rounded hover:bg-slate-50">Book for Your Employees</button>
               <button onClick={() => navigateTo('about')} className="text-left py-2 px-3 rounded hover:bg-slate-50">About Site Safe Alliance</button>
               <button onClick={() => navigateTo('contact')} className="text-left py-2 px-3 rounded hover:bg-slate-50">Contact &amp; 12 Nationwide Hubs</button>
               <button onClick={() => navigateTo('privacy')} className="text-left py-2 px-3 rounded hover:bg-slate-50">Privacy Policy</button>
@@ -331,12 +307,11 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
             </div>
             <div className="pt-3 border-t border-slate-100 flex flex-col gap-2">
               <button onClick={() => navigateTo('individual-booking')} className="w-full py-2.5 rounded-lg bg-[#263B52] text-white font-bold text-center">
-                Book Individual Place
+                Book for Yourself
               </button>
-              <a href="tel:+442036084780" className="w-full py-2.5 rounded-lg bg-emerald-50 text-emerald-800 font-mono text-center border border-emerald-200 flex items-center justify-center gap-2">
-                <PhoneCall className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Call Hotline: +44 20 3608 4780</span>
-              </a>
+              <button onClick={() => navigateTo('employer-booking')} className="w-full py-2.5 rounded-lg bg-slate-100 text-slate-800 font-bold text-center border border-slate-200">
+                Book for Your Employees
+              </button>
             </div>
           </div>
         )}
@@ -373,7 +348,7 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
                 <div className="lg:col-span-7 space-y-6">
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#263B52]/10 border border-[#263B52]/20 text-[#263B52] font-mono text-xs font-semibold">
                     <Award className="w-3.5 h-3.5 text-[#78A6B8]" />
-                    <span>CITB APPROVED TRAINING ORGANISATION (ATO #9841)</span>
+                    <span>INDEPENDENT CITB &amp; CSCS SUPPORT SERVICES</span>
                   </div>
 
                   <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-950 tracking-tight leading-tight">
@@ -440,71 +415,87 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
                     <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                       <div className="flex items-center gap-2">
                         <Sparkles className="w-4 h-4 text-[#78A6B8]" />
-                        <h3 className="text-sm font-bold text-slate-900">Fast Candidate Fast-Track</h3>
+                        <h3 className="text-sm font-bold text-slate-900">Service Selection &amp; Booking</h3>
                       </div>
                       <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                        Live System
+                        Live Service
                       </span>
+                    </div>
+
+                    {/* Confirmation note */}
+                    <div className="p-3 bg-sky-50 rounded-xl border border-sky-200 text-sky-950 flex items-start gap-2.5">
+                      <Info className="w-4 h-4 text-[#263B52] shrink-0 mt-0.5" />
+                      <p className="text-[11px] leading-relaxed">
+                        {CONFIRMATION_NOTE}
+                      </p>
                     </div>
 
                     <div className="space-y-3 text-xs">
                       <div>
-                        <label className="block text-slate-700 font-semibold mb-1">Select Required Qualification</label>
+                        <label className="block text-slate-700 font-semibold mb-1">Service Required</label>
                         <select 
-                          value={indivForm.course}
-                          onChange={(e) => setIndivForm({ ...indivForm, course: e.target.value })}
+                          value={indivForm.serviceRequired}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setIndivForm({ ...indivForm, serviceRequired: val });
+                            setEmployerForm({ ...employerForm, serviceRequired: val });
+                          }}
                           className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-medium focus:ring-2 focus:ring-[#263B52] focus:outline-none"
                         >
-                          <option value="green-labourer-pkg">Green Labourer Card Package — £320 incl. VAT</option>
-                          <option value="citb-hse-test">CITB Health, Safety & Environment Test — £50 incl. VAT</option>
-                          <option value="cscs-card-app">CSCS Card Application — £65 incl. VAT</option>
-                          <option value="l1-hs-course">Level 1 Health & Safety in Construction — £200 incl. VAT</option>
+                          <option value="CSCS Card Application">CSCS Card Application — £55 + VAT</option>
+                          <option value="CITB Health, Safety & Environment Test">CITB Health, Safety &amp; Environment Test — £50</option>
+                          <option value="Training Courses">Training Courses — £200 + VAT</option>
+                          <option value="Green Labourer Card Package">Green Labourer Card Package — £295 + VAT</option>
+                          <option value="Other (please specify)">Other (please specify)</option>
                         </select>
                       </div>
 
-                      <div>
-                        <label className="block text-slate-700 font-semibold mb-1">Preferred Testing Location</label>
-                        <select 
-                          value={indivForm.location}
-                          onChange={(e) => setIndivForm({ ...indivForm, location: e.target.value })}
-                          className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 text-xs focus:ring-2 focus:ring-[#263B52] focus:outline-none"
-                        >
-                          <option>London East (Canary Wharf Hub)</option>
-                          <option>London Central (Kings Cross Centre)</option>
-                          <option>London South (Croydon Testing Hub)</option>
-                          <option>Midlands (Birmingham Bullring)</option>
-                          <option>North West (Manchester Piccadilly Hub)</option>
-                          <option>Yorkshire (Leeds City Centre)</option>
-                          <option>South West (Bristol Temple Meads)</option>
-                          <option>Scotland (Glasgow Central)</option>
-                          <option>Nationwide Live Remote Virtual Classroom</option>
-                        </select>
-                      </div>
+                      {indivForm.serviceRequired === 'Other (please specify)' && (
+                        <div>
+                          <label className="block text-slate-700 font-semibold mb-1">Please specify service required *</label>
+                          <input
+                            type="text"
+                            placeholder="Describe the qualification or support you need"
+                            value={indivForm.otherService}
+                            onChange={(e) => setIndivForm({ ...indivForm, otherService: e.target.value })}
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 text-xs focus:ring-2 focus:ring-[#263B52] focus:outline-none"
+                          />
+                        </div>
+                      )}
 
                       <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
                         <div>
-                          <span className="text-[11px] text-slate-500 block">Total Payable</span>
+                          <span className="text-[11px] text-slate-500 block">Service Fee</span>
                           <span className="text-base font-extrabold text-[#263B52] font-mono">
-                            {getCoursePrice(indivForm.course).label}
+                            {getCoursePrice(indivForm.serviceRequired).label}
                           </span>
                         </div>
                         <span className="text-[10px] text-emerald-700 font-medium flex items-center gap-1">
-                          <Check className="w-3 h-3" /> Guaranteed Slot
+                          <Check className="w-3 h-3" /> Reviewed by Team
                         </span>
                       </div>
 
-                      <button
-                        onClick={() => navigateTo('individual-booking')}
-                        className="w-full py-3 rounded-xl bg-[#263B52] hover:bg-[#1B2A3B] text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
-                      >
-                        <span>Continue to Candidate Enrollment</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        <button
+                          onClick={() => navigateTo('individual-booking')}
+                          className="w-full py-2.5 px-3 rounded-xl bg-[#263B52] hover:bg-[#1B2A3B] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                        >
+                          <User className="w-3.5 h-3.5 text-[#78A6B8]" />
+                          <span>Book for Yourself</span>
+                        </button>
+                        <button
+                          onClick={() => navigateTo('employer-booking')}
+                          className="w-full py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs border border-slate-300 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                        >
+                          <Building2 className="w-3.5 h-3.5 text-slate-600" />
+                          <span>For Employees</span>
+                        </button>
+                      </div>
                     </div>
 
                     <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
                       <span className="flex items-center gap-1"><Lock className="w-3 h-3 text-slate-400" /> SSL 256-Bit Encrypted</span>
-                      <span>CITB ATO #9841 Verified</span>
+                      <span>Independent Support Service</span>
                     </div>
                   </div>
                 </div>
@@ -522,7 +513,7 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
                     Accredited CITB Tests &amp; CSCS Certification
                   </h2>
                   <p className="text-slate-600 text-xs sm:text-sm mt-1">
-                    All prices are fully inclusive with instant booking, official CITB ATO registration, and express card delivery.
+                    All prices are transparent with booking assistance, test scheduling, and application support.
                   </p>
                 </div>
                 <button
@@ -603,7 +594,7 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
                             <>
                               <div className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-500" /> Lifetime valid qualification</div>
                               <div className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-500" /> Classroom or online webinar</div>
-                              <div className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-500" /> CITB ATO accredited Ofqual</div>
+                              <div className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-500" /> Ofqual regulated qualification</div>
                             </>
                           )}
                         </div>
@@ -619,7 +610,12 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
 
                         <button
                           onClick={() => {
-                            setIndivForm({ ...indivForm, course: service.code.toLowerCase().replace(/_/g, '-') });
+                            let servName = 'Green Labourer Card Package';
+                            if (service.code === 'CITB_HSE_TEST') servName = 'CITB Health, Safety & Environment Test';
+                            else if (service.code === 'CSCS_CARD_APP') servName = 'CSCS Card Application';
+                            else if (service.code === 'L1_HS_COURSE') servName = 'Training Courses';
+                            setIndivForm({ ...indivForm, serviceRequired: servName });
+                            setEmployerForm({ ...employerForm, serviceRequired: servName });
                             navigateTo('individual-booking');
                           }}
                           className={`px-4 py-2 rounded-lg font-bold text-xs transition-all cursor-pointer ${
@@ -677,7 +673,7 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
           <div className="max-w-7xl mx-auto px-4 sm:px-8 py-10 space-y-8">
             <div className="space-y-2 border-b border-slate-200 pb-5">
               <div className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-[#78A6B8]">
-                <Award className="w-4 h-4" /> CITB ATO COURSE DIRECTORY
+                <Award className="w-4 h-4" /> CONSTRUCTION COURSE DIRECTORY
               </div>
               <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-950">Accredited Health &amp; Safety Courses</h1>
               <p className="text-slate-600 text-xs sm:text-sm">Find and book Ofqual-regulated certifications across 150+ UK Pearson testing hubs.</p>
@@ -753,7 +749,8 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
 
                     <button
                       onClick={() => {
-                        setIndivForm({ ...indivForm, course: course.id });
+                        setIndivForm({ ...indivForm, serviceRequired: course.title });
+                        setEmployerForm({ ...employerForm, serviceRequired: course.title });
                         navigateTo('individual-booking');
                       }}
                       className="px-4 py-2 rounded-lg bg-[#263B52] hover:bg-[#1B2A3B] text-white font-bold text-xs transition-all shadow-xs cursor-pointer"
@@ -768,221 +765,164 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
         )}
 
         {/* ========================================================================= */}
-        {/* PAGE 3: INDIVIDUAL CANDIDATE ENROLLMENT FORM                              */}
+        {/* PAGE 3: BOOK FOR YOURSELF                                                 */}
         {/* ========================================================================= */}
         {currentPage === 'individual-booking' && (
-          <div className="max-w-4xl mx-auto px-4 sm:px-8 py-10 space-y-8">
+          <div className="max-w-3xl mx-auto px-4 sm:px-8 py-10 space-y-8">
             <div className="border-b border-slate-200 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-950 flex items-center gap-2">
                   <User className="w-6 h-6 text-[#78A6B8]" />
-                  Individual Candidate Enrollment
+                  Book for Yourself
                 </h1>
-                <p className="text-xs text-slate-600 mt-1">Direct synchronization into official CITB ATO registration database</p>
+                <p className="text-xs text-slate-600 mt-1">Individual booking request for CSCS cards, CITB tests, and safety qualifications.</p>
               </div>
               <span className="text-xs font-mono font-bold px-3 py-1 rounded bg-[#263B52]/10 text-[#263B52] border border-[#263B52]/20">
-                Step 1 of 1: Instant Confirmation
+                Individual Service
               </span>
             </div>
 
-            <form onSubmit={handleIndividualSubmit} className="space-y-6 text-xs" id="live-candidate-booking-form">
-              {/* 1. Qualification & Location */}
-              <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <Award className="w-4 h-4 text-[#78A6B8]" /> 1. Course Selection &amp; Testing Centre
-                </h3>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-slate-700 font-semibold mb-1">Selected Qualification *</label>
-                    <select
-                      value={indivForm.course}
-                      onChange={(e) => setIndivForm({ ...indivForm, course: e.target.value })}
-                      className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-medium focus:ring-2 focus:ring-[#263B52] focus:outline-none"
-                    >
-                      <option value="green-labourer-pkg">Green Labourer Card Package — £320 incl. VAT</option>
-                      <option value="citb-hse-test">CITB Health, Safety &amp; Environment Test — £50 incl. VAT</option>
-                      <option value="cscs-card-app">CSCS Card Application — £65 incl. VAT</option>
-                      <option value="l1-hs-course">Level 1 Health &amp; Safety in Construction — £200 incl. VAT</option>
-                      <option value="smsts-5day">CITB SMSTS (5-Day Site Management) — £495 + VAT</option>
-                      <option value="sssts-2day">CITB SSSTS (2-Day Site Supervisor) — £260 + VAT</option>
-                      <option value="medical-safety-critical">Safety Critical Medical (Fit2Work) — £140 + VAT</option>
-                      <option value="firstaid-faw">First Aid at Work (FAW 3-Day) — £220 + VAT</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-slate-700 font-semibold mb-1">Delivery Format *</label>
-                    <select
-                      value={indivForm.delivery}
-                      onChange={(e) => setIndivForm({ ...indivForm, delivery: e.target.value })}
-                      className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-[#263B52] focus:outline-none"
-                    >
-                      <option value="pearson-vue">Pearson VUE Authorised Testing Centre</option>
-                      <option value="classroom">Regional Physical Training Hub</option>
-                      <option value="remote-webinar">Live Virtual Classroom (Online Invigilated)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-slate-700 font-semibold mb-1">Target Test Date *</label>
-                    <input
-                      type="date"
-                      value={indivForm.date}
-                      onChange={(e) => setIndivForm({ ...indivForm, date: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-[#263B52] focus:outline-none font-mono"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-slate-700 font-semibold mb-1">Testing Centre Hub *</label>
-                    <select
-                      value={indivForm.location}
-                      onChange={(e) => setIndivForm({ ...indivForm, location: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-[#263B52] focus:outline-none"
-                    >
-                      <option>London East (Canary Wharf Hub)</option>
-                      <option>London Central (Kings Cross Centre)</option>
-                      <option>London South (Croydon Centre)</option>
-                      <option>Midlands (Birmingham Bullring)</option>
-                      <option>North West (Manchester Piccadilly Hub)</option>
-                      <option>Yorkshire (Leeds City Centre)</option>
-                      <option>South West (Bristol Temple Meads)</option>
-                      <option>Scotland (Glasgow Central)</option>
-                      <option>Remote Online Live Invigilation</option>
-                    </select>
-                  </div>
-                </div>
+            {/* Confirmation Note Callout */}
+            <div className="p-4 rounded-xl bg-sky-50 border border-sky-200 text-sky-950 flex items-start gap-3 shadow-xs">
+              <Info className="w-5 h-5 text-[#263B52] shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <span className="font-bold text-xs uppercase tracking-wider text-[#263B52] block font-mono">Confirmation Note</span>
+                <p className="text-xs sm:text-sm font-medium leading-relaxed">
+                  {CONFIRMATION_NOTE}
+                </p>
               </div>
+            </div>
 
-              {/* 2. Candidate Personal Details */}
-              <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <User className="w-4 h-4 text-[#78A6B8]" /> 2. Candidate Identification &amp; CITB Details
+            <form onSubmit={handleIndividualSubmit} className="space-y-6 text-xs" id="book-for-yourself-form">
+              <div className="bg-white rounded-2xl p-6 sm:p-7 border border-slate-200 shadow-xs space-y-5">
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
+                  <User className="w-4 h-4 text-[#78A6B8]" /> Candidate Details &amp; Service Required
                 </h3>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-4">
                   <div>
-                    <label className="block text-slate-700 font-semibold mb-1">First Name *</label>
+                    <label className="block text-slate-700 font-semibold mb-1">Full Name *</label>
                     <input
                       type="text"
                       required
-                      value={indivForm.firstName}
-                      onChange={(e) => setIndivForm({ ...indivForm, firstName: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-[#263B52] focus:outline-none"
+                      placeholder="e.g. David O'Connor"
+                      value={indivForm.fullName}
+                      onChange={(e) => setIndivForm({ ...indivForm, fullName: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 text-xs sm:text-sm focus:ring-2 focus:ring-[#263B52] focus:outline-none"
                     />
                   </div>
 
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-slate-700 font-semibold mb-1">Email *</label>
+                      <input
+                        type="email"
+                        required
+                        placeholder="e.g. david.oconnor@example.com"
+                        value={indivForm.email}
+                        onChange={(e) => setIndivForm({ ...indivForm, email: e.target.value })}
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 text-xs sm:text-sm focus:ring-2 focus:ring-[#263B52] focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-700 font-semibold mb-1">Phone Number *</label>
+                      <input
+                        type="tel"
+                        required
+                        placeholder="e.g. +44 7911 123456"
+                        value={indivForm.phone}
+                        onChange={(e) => setIndivForm({ ...indivForm, phone: e.target.value })}
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 text-xs sm:text-sm focus:ring-2 focus:ring-[#263B52] focus:outline-none font-mono"
+                      />
+                    </div>
+                  </div>
+
                   <div>
-                    <label className="block text-slate-700 font-semibold mb-1">Last Name *</label>
-                    <input
-                      type="text"
+                    <label className="block text-slate-700 font-semibold mb-1">Service Required *</label>
+                    <select
+                      value={indivForm.serviceRequired}
+                      onChange={(e) => setIndivForm({ ...indivForm, serviceRequired: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-semibold text-xs sm:text-sm focus:ring-2 focus:ring-[#263B52] focus:outline-none"
                       required
-                      value={indivForm.lastName}
-                      onChange={(e) => setIndivForm({ ...indivForm, lastName: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-[#263B52] focus:outline-none"
-                    />
+                    >
+                      <option value="CSCS Card Application">CSCS Card Application — £55 + VAT</option>
+                      <option value="CITB Health, Safety & Environment Test">CITB Health, Safety &amp; Environment Test — £50</option>
+                      <option value="Training Courses">Training Courses — £200 + VAT</option>
+                      <option value="Green Labourer Card Package">Green Labourer Card Package — £295 + VAT</option>
+                      <option value="Other (please specify)">Other (please specify)</option>
+                    </select>
                   </div>
 
+                  {indivForm.serviceRequired === 'Other (please specify)' && (
+                    <div className="p-3 bg-amber-50 rounded-xl border border-amber-200">
+                      <label className="block text-slate-900 font-semibold mb-1">Please specify the service you require *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Please describe the test, card, or course you need..."
+                        value={indivForm.otherService}
+                        onChange={(e) => setIndivForm({ ...indivForm, otherService: e.target.value })}
+                        className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-xs sm:text-sm focus:ring-2 focus:ring-[#263B52] focus:outline-none"
+                      />
+                    </div>
+                  )}
+
                   <div>
-                    <label className="block text-slate-700 font-semibold mb-1">Date of Birth *</label>
+                    <label className="block text-slate-700 font-semibold mb-1">
+                      Preferred Date (if applicable)
+                    </label>
                     <input
                       type="date"
-                      required
-                      value={indivForm.dob}
-                      onChange={(e) => setIndivForm({ ...indivForm, dob: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-[#263B52] focus:outline-none font-mono"
+                      value={indivForm.preferredDate}
+                      onChange={(e) => setIndivForm({ ...indivForm, preferredDate: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 text-xs sm:text-sm focus:ring-2 focus:ring-[#263B52] focus:outline-none font-mono"
                     />
+                    <span className="text-[11px] text-slate-500 mt-1 block">Optional: specify if you have a target testing or training date in mind.</span>
                   </div>
 
                   <div>
-                    <label className="block text-slate-700 font-semibold mb-1">UK National Insurance Number *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. QQ 12 34 56 A"
-                      value={indivForm.nationalInsurance}
-                      onChange={(e) => setIndivForm({ ...indivForm, nationalInsurance: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-[#263B52] focus:outline-none font-mono uppercase"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-slate-700 font-semibold mb-1">Email Address *</label>
-                    <input
-                      type="email"
-                      required
-                      value={indivForm.email}
-                      onChange={(e) => setIndivForm({ ...indivForm, email: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-[#263B52] focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-slate-700 font-semibold mb-1">Mobile Telephone *</label>
-                    <input
-                      type="tel"
-                      required
-                      value={indivForm.phone}
-                      onChange={(e) => setIndivForm({ ...indivForm, phone: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-[#263B52] focus:outline-none font-mono"
-                    />
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="block text-slate-700 font-semibold mb-1">Postal Address for CSCS Card Dispatch *</label>
-                    <input
-                      type="text"
-                      required
-                      value={indivForm.address}
-                      onChange={(e) => setIndivForm({ ...indivForm, address: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-[#263B52] focus:outline-none"
+                    <label className="block text-slate-700 font-semibold mb-1">Additional Notes</label>
+                    <textarea
+                      rows={3}
+                      placeholder="Any specific questions, preferred testing hub location, or special requirements..."
+                      value={indivForm.additionalNotes}
+                      onChange={(e) => setIndivForm({ ...indivForm, additionalNotes: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 text-xs sm:text-sm focus:ring-2 focus:ring-[#263B52] focus:outline-none"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* 3. Summary & Payment */}
+              {/* Pricing breakdown & Confirmation */}
               <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <CreditCard className="w-4 h-4 text-[#78A6B8]" /> 3. Pricing Summary &amp; Confirmation
-                </h3>
-
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <span className="text-xs text-slate-600 block">Total Due:</span>
-                    <span className="text-2xl font-extrabold text-[#263B52] font-mono">
-                      {getCoursePrice(indivForm.course).label}
+                    <span className="text-xs text-slate-500 block font-medium">Service Requested:</span>
+                    <span className="text-sm font-bold text-slate-900">
+                      {indivForm.serviceRequired === 'Other (please specify)' 
+                        ? (indivForm.otherService || 'Custom service (pending review)') 
+                        : indivForm.serviceRequired}
                     </span>
+                    <div className="text-xl font-extrabold text-[#263B52] font-mono mt-1">
+                      {getCoursePrice(indivForm.serviceRequired).label}
+                    </div>
                   </div>
-                  <div className="text-right text-[11px] text-slate-500">
-                    <div>Includes Pearson VUE exam fee</div>
-                    <div className="text-emerald-700 font-semibold">Immediate confirmation</div>
+                  <div className="text-left sm:text-right text-[11px] text-slate-500 border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-200">
+                    <div className="text-emerald-700 font-semibold flex items-center sm:justify-end gap-1">
+                      <Check className="w-3.5 h-3.5" /> No payment taken now
+                    </div>
+                    <div>Team will call to confirm service and details</div>
                   </div>
-                </div>
-
-                <div className="flex items-start gap-2 pt-2">
-                  <input
-                    type="checkbox"
-                    id="gdpr-consent"
-                    checked={indivForm.gdpr}
-                    onChange={(e) => setIndivForm({ ...indivForm, gdpr: e.target.checked })}
-                    className="mt-0.5 rounded text-[#263B52] focus:ring-[#263B52]"
-                    required
-                  />
-                  <label htmlFor="gdpr-consent" className="text-[11px] text-slate-600 leading-snug">
-                    I confirm the candidate details are accurate and authorise Site Safe Alliance to register candidate details with CITB and Pearson VUE for test issuance.
-                  </label>
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full py-3.5 rounded-xl bg-[#263B52] hover:bg-[#1B2A3B] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
-                  id="submit-candidate-booking-btn"
+                  className="w-full py-3.5 rounded-xl bg-[#263B52] hover:bg-[#1B2A3B] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
+                  id="submit-book-for-yourself-btn"
                 >
-                  <Lock className="w-4 h-4 text-[#78A6B8]" />
-                  <span>Confirm Enrollment &amp; Reserve Slot ({getCoursePrice(indivForm.course).label})</span>
+                  <Send className="w-4 h-4 text-[#78A6B8]" />
+                  <span>Submit Request — Book for Yourself</span>
                 </button>
               </div>
             </form>
@@ -990,232 +930,244 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
         )}
 
         {/* ========================================================================= */}
-        {/* PAGE 4: EMPLOYER CORPORATE BOOKING & PO ROSTER                            */}
+        {/* PAGE 4: BOOK FOR YOUR EMPLOYEES                                           */}
         {/* ========================================================================= */}
         {currentPage === 'employer-booking' && (
-          <div className="max-w-5xl mx-auto px-4 sm:px-8 py-10 space-y-8">
+          <div className="max-w-3xl mx-auto px-4 sm:px-8 py-10 space-y-8">
             <div className="border-b border-slate-200 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-950 flex items-center gap-2">
                   <Building2 className="w-6 h-6 text-[#78A6B8]" />
-                  Employer Cohort &amp; Corporate PO Booking
+                  Book for Your Employees
                 </h1>
-                <p className="text-xs text-slate-600 mt-1">Tier-1 contractor accounts, multi-delegate rosters, 30-day PO invoicing, and automated CITB levy grants.</p>
+                <p className="text-xs text-slate-600 mt-1">Corporate booking support, workforce roster management, and group certification assistance.</p>
               </div>
-              <span className="text-xs font-mono font-bold px-3 py-1 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
-                30-Day Credit Approved
+              <span className="text-xs font-mono font-bold px-3 py-1 rounded bg-[#263B52]/10 text-[#263B52] border border-[#263B52]/20">
+                Employer Service
               </span>
             </div>
 
-            <form onSubmit={handleEmployerSubmit} className="space-y-6 text-xs" id="corporate-cohort-booking-form">
-              {/* Company & Billing Information */}
-              <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-[#78A6B8]" /> 1. Organization &amp; PO Billing Details
+            {/* Confirmation Note Callout */}
+            <div className="p-4 rounded-xl bg-sky-50 border border-sky-200 text-sky-950 flex items-start gap-3 shadow-xs">
+              <Info className="w-5 h-5 text-[#263B52] shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <span className="font-bold text-xs uppercase tracking-wider text-[#263B52] block font-mono">Confirmation Note</span>
+                <p className="text-xs sm:text-sm font-medium leading-relaxed">
+                  {CONFIRMATION_NOTE}
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleEmployerSubmit} className="space-y-6 text-xs" id="book-for-employees-form">
+              <div className="bg-white rounded-2xl p-6 sm:p-7 border border-slate-200 shadow-xs space-y-5">
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
+                  <Building2 className="w-4 h-4 text-[#78A6B8]" /> Company &amp; Contact Details
                 </h3>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="sm:col-span-2">
-                    <label className="block text-slate-700 font-semibold mb-1">Company Registered Legal Name *</label>
-                    <input
-                      type="text"
-                      required
-                      value={employerForm.companyName}
-                      onChange={(e) => setEmployerForm({ ...employerForm, companyName: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-[#263B52] focus:outline-none"
-                    />
-                  </div>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-slate-700 font-semibold mb-1">Contact Name *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Sarah Jenkins"
+                        value={employerForm.contactName}
+                        onChange={(e) => setEmployerForm({ ...employerForm, contactName: e.target.value })}
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 text-xs sm:text-sm focus:ring-2 focus:ring-[#263B52] focus:outline-none"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-slate-700 font-semibold mb-1">Purchase Order (PO) Number *</label>
-                    <input
-                      type="text"
-                      required
-                      value={employerForm.poNumber}
-                      onChange={(e) => setEmployerForm({ ...employerForm, poNumber: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-mono font-bold focus:ring-2 focus:ring-[#263B52] focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-slate-700 font-semibold mb-1">CITB Levy Number (if applicable)</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. LEV-782145"
-                      value={employerForm.citbLevyNumber}
-                      onChange={(e) => setEmployerForm({ ...employerForm, citbLevyNumber: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-mono focus:ring-2 focus:ring-[#263B52] focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-slate-700 font-semibold mb-1">Primary Booking Contact *</label>
-                    <input
-                      type="text"
-                      required
-                      value={employerForm.contactName}
-                      onChange={(e) => setEmployerForm({ ...employerForm, contactName: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-[#263B52] focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-slate-700 font-semibold mb-1">Accounts Payable Email *</label>
-                    <input
-                      type="email"
-                      required
-                      value={employerForm.contactEmail}
-                      onChange={(e) => setEmployerForm({ ...employerForm, contactEmail: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-[#263B52] focus:outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Dynamic Candidate Roster Table */}
-              <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                      <Users className="w-4 h-4 text-[#78A6B8]" /> 2. Multi-Delegate Candidate Roster ({delegates.length} Candidates)
-                    </h3>
-                    <p className="text-slate-500 text-[11px]">Enter details for each worker to be enrolled on the cohort.</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={addDelegateRow}
-                    className="px-3 py-1.5 rounded-lg bg-[#263B52] hover:bg-[#1B2A3B] text-white font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Add Delegate
-                  </button>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs border border-slate-200 rounded-lg overflow-hidden">
-                    <thead className="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
-                      <tr>
-                        <th className="p-2.5">#</th>
-                        <th className="p-2.5">First Name</th>
-                        <th className="p-2.5">Last Name</th>
-                        <th className="p-2.5">Date of Birth</th>
-                        <th className="p-2.5">NI Number</th>
-                        <th className="p-2.5">CITB Reg (Opt.)</th>
-                        <th className="p-2.5 text-center">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200 bg-white">
-                      {delegates.map((del, idx) => (
-                        <tr key={del.id}>
-                          <td className="p-2.5 font-mono text-slate-400">{idx + 1}</td>
-                          <td className="p-2.5">
-                            <input
-                              type="text"
-                              required
-                              value={del.firstName}
-                              onChange={(e) => {
-                                const copy = [...delegates];
-                                copy[idx].firstName = e.target.value;
-                                setDelegates(copy);
-                              }}
-                              placeholder="First"
-                              className="w-full px-2 py-1 bg-slate-50 border border-slate-300 rounded text-slate-900"
-                            />
-                          </td>
-                          <td className="p-2.5">
-                            <input
-                              type="text"
-                              required
-                              value={del.lastName}
-                              onChange={(e) => {
-                                const copy = [...delegates];
-                                copy[idx].lastName = e.target.value;
-                                setDelegates(copy);
-                              }}
-                              placeholder="Last"
-                              className="w-full px-2 py-1 bg-slate-50 border border-slate-300 rounded text-slate-900"
-                            />
-                          </td>
-                          <td className="p-2.5">
-                            <input
-                              type="date"
-                              required
-                              value={del.dob}
-                              onChange={(e) => {
-                                const copy = [...delegates];
-                                copy[idx].dob = e.target.value;
-                                setDelegates(copy);
-                              }}
-                              className="w-full px-2 py-1 bg-slate-50 border border-slate-300 rounded text-slate-900 font-mono text-[11px]"
-                            />
-                          </td>
-                          <td className="p-2.5">
-                            <input
-                              type="text"
-                              required
-                              value={del.nationalInsurance}
-                              onChange={(e) => {
-                                const copy = [...delegates];
-                                copy[idx].nationalInsurance = e.target.value;
-                                setDelegates(copy);
-                              }}
-                              placeholder="QQ 12 34 56 A"
-                              className="w-full px-2 py-1 bg-slate-50 border border-slate-300 rounded text-slate-900 font-mono text-[11px] uppercase"
-                            />
-                          </td>
-                          <td className="p-2.5">
-                            <input
-                              type="text"
-                              value={del.citbNumber}
-                              onChange={(e) => {
-                                const copy = [...delegates];
-                                copy[idx].citbNumber = e.target.value;
-                                setDelegates(copy);
-                              }}
-                              placeholder="CITB-XXXX"
-                              className="w-full px-2 py-1 bg-slate-50 border border-slate-300 rounded text-slate-900 font-mono text-[11px]"
-                            />
-                          </td>
-                          <td className="p-2.5 text-center">
-                            <button
-                              type="button"
-                              onClick={() => removeDelegateRow(del.id)}
-                              disabled={delegates.length <= 1}
-                              className={`p-1 rounded ${delegates.length <= 1 ? 'text-slate-300' : 'text-rose-600 hover:bg-rose-50'}`}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Quotation & Submit */}
-              <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
-                <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 border border-slate-200">
-                  <div>
-                    <span className="text-xs text-slate-500">Cohort Quotation ({delegates.length} Delegates)</span>
-                    <div className="text-2xl font-extrabold text-[#263B52] font-mono">
-                      £{(delegates.length * 320).toLocaleString()} <span className="text-xs font-normal text-slate-500">incl. VAT</span>
+                    <div>
+                      <label className="block text-slate-700 font-semibold mb-1">Company Name *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Apex Construction Ltd"
+                        value={employerForm.companyName}
+                        onChange={(e) => setEmployerForm({ ...employerForm, companyName: e.target.value })}
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 text-xs sm:text-sm focus:ring-2 focus:ring-[#263B52] focus:outline-none"
+                      />
                     </div>
                   </div>
-                  <div className="text-right text-[11px] text-slate-600">
-                    <span className="inline-block px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold mb-1">
-                      CITB Levy Grant Eligible (£140/candidate)
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-slate-700 font-semibold mb-1">Email *</label>
+                      <input
+                        type="email"
+                        required
+                        placeholder="e.g. s.jenkins@apexconstruction.co.uk"
+                        value={employerForm.email}
+                        onChange={(e) => setEmployerForm({ ...employerForm, email: e.target.value })}
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 text-xs sm:text-sm focus:ring-2 focus:ring-[#263B52] focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-700 font-semibold mb-1">Phone Number *</label>
+                      <input
+                        type="tel"
+                        required
+                        placeholder="e.g. +44 20 7946 0912"
+                        value={employerForm.phone}
+                        onChange={(e) => setEmployerForm({ ...employerForm, phone: e.target.value })}
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 text-xs sm:text-sm focus:ring-2 focus:ring-[#263B52] focus:outline-none font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-700 font-semibold mb-1">Company Address *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. 5 Churchill Place, Canary Wharf, London E14 5HU"
+                      value={employerForm.companyAddress}
+                      onChange={(e) => setEmployerForm({ ...employerForm, companyAddress: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 text-xs sm:text-sm focus:ring-2 focus:ring-[#263B52] focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-slate-700 font-semibold mb-1">Number of Employees *</label>
+                      <input
+                        type="number"
+                        min="1"
+                        required
+                        placeholder="e.g. 6"
+                        value={employerForm.numberOfEmployees}
+                        onChange={(e) => setEmployerForm({ ...employerForm, numberOfEmployees: e.target.value })}
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 text-xs sm:text-sm focus:ring-2 focus:ring-[#263B52] focus:outline-none font-mono"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-700 font-semibold mb-1">Service Required *</label>
+                      <select
+                        value={employerForm.serviceRequired}
+                        onChange={(e) => setEmployerForm({ ...employerForm, serviceRequired: e.target.value })}
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-semibold text-xs sm:text-sm focus:ring-2 focus:ring-[#263B52] focus:outline-none"
+                        required
+                      >
+                        <option value="CSCS Card Application">CSCS Card Application — £55 + VAT</option>
+                        <option value="CITB Health, Safety & Environment Test">CITB Health, Safety &amp; Environment Test — £50</option>
+                        <option value="Training Courses">Training Courses — £200 + VAT</option>
+                        <option value="Green Labourer Card Package">Green Labourer Card Package — £295 + VAT</option>
+                        <option value="Other (please specify)">Other (please specify)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {employerForm.serviceRequired === 'Other (please specify)' && (
+                    <div className="p-3 bg-amber-50 rounded-xl border border-amber-200">
+                      <label className="block text-slate-900 font-semibold mb-1">Please specify the service you require *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Please describe the workforce requirements or custom package needed..."
+                        value={employerForm.otherService}
+                        onChange={(e) => setEmployerForm({ ...employerForm, otherService: e.target.value })}
+                        className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-xs sm:text-sm focus:ring-2 focus:ring-[#263B52] focus:outline-none"
+                      />
+                    </div>
+                  )}
+
+                  {/* Upload Employee List (optional) */}
+                  <div>
+                    <label className="block text-slate-700 font-semibold mb-1">
+                      Upload Employee List (optional)
+                    </label>
+                    <div className="border-2 border-dashed border-slate-300 hover:border-[#263B52] rounded-xl p-4 bg-slate-50 hover:bg-slate-100/60 transition-all text-center">
+                      {employerForm.employeeListFile ? (
+                        <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200">
+                          <div className="flex items-center gap-2.5 text-left">
+                            <FileCheck className="w-5 h-5 text-emerald-600 shrink-0" />
+                            <div>
+                              <div className="font-semibold text-slate-900 text-xs truncate max-w-xs">
+                                {employerForm.employeeListFile.name}
+                              </div>
+                              <div className="text-[10px] text-slate-500 font-mono">
+                                {(employerForm.employeeListFile.size / 1024).toFixed(1)} KB
+                              </div>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setEmployerForm({ ...employerForm, employeeListFile: null })}
+                            className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors"
+                            title="Remove file"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="cursor-pointer block">
+                          <input
+                            type="file"
+                            accept=".csv,.xlsx,.xls,.pdf,.docx,.doc"
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files[0]) {
+                                setEmployerForm({ ...employerForm, employeeListFile: e.target.files[0] });
+                              }
+                            }}
+                            className="hidden"
+                          />
+                          <UploadCloud className="w-6 h-6 text-slate-400 mx-auto mb-1" />
+                          <div className="font-semibold text-slate-800 text-xs">
+                            Click to upload or drag and drop employee roster
+                          </div>
+                          <div className="text-[11px] text-slate-500 mt-0.5">
+                            Accepted formats: CSV, Excel (.xlsx, .xls), PDF, Word (.docx)
+                          </div>
+                        </label>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-700 font-semibold mb-1">Additional Notes</label>
+                    <textarea
+                      rows={3}
+                      placeholder="e.g. Site locations, preferred booking timelines, candidate availability, or invoicing instructions..."
+                      value={employerForm.additionalNotes}
+                      onChange={(e) => setEmployerForm({ ...employerForm, additionalNotes: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 text-xs sm:text-sm focus:ring-2 focus:ring-[#263B52] focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Pricing Overview & Submission */}
+              <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <span className="text-xs text-slate-500 block font-medium">Service Rate:</span>
+                    <span className="text-sm font-bold text-slate-900">
+                      {employerForm.serviceRequired === 'Other (please specify)' 
+                        ? (employerForm.otherService || 'Custom group quote (pending review)') 
+                        : employerForm.serviceRequired}
                     </span>
-                    <div>Payment by 30-day PO invoice</div>
+                    <div className="text-xl font-extrabold text-[#263B52] font-mono mt-1">
+                      {getCoursePrice(employerForm.serviceRequired).label} <span className="text-xs font-normal text-slate-500">{employerForm.numberOfEmployees ? `(x ${employerForm.numberOfEmployees} employees)` : 'per employee'}</span>
+                    </div>
+                  </div>
+                  <div className="text-left sm:text-right text-[11px] text-slate-500 border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-200">
+                    <div className="text-emerald-700 font-semibold flex items-center sm:justify-end gap-1">
+                      <Check className="w-3.5 h-3.5" /> No instant charge
+                    </div>
+                    <div>Corporate invoice &amp; service confirmation by team</div>
                   </div>
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full py-3.5 rounded-xl bg-[#263B52] hover:bg-[#1B2A3B] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
-                  id="submit-corporate-cohort-btn"
+                  className="w-full py-3.5 rounded-xl bg-[#263B52] hover:bg-[#1B2A3B] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
+                  id="submit-book-for-employees-btn"
                 >
                   <Send className="w-4 h-4 text-[#78A6B8]" />
-                  <span>Submit Corporate Cohort Order (PO: {employerForm.poNumber || 'PENDING'})</span>
+                  <span>Submit Request — Book for Your Employees</span>
                 </button>
               </div>
             </form>
@@ -1338,12 +1290,13 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
                     <input type="tel" required placeholder="e.g. +44 7123 456789" className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#263B52] font-mono" />
                   </div>
                   <div>
-                    <label className="block text-slate-700 font-semibold mb-1">Enquiry Type *</label>
+                    <label className="block text-slate-700 font-semibold mb-1">Service Required / Enquiry Type *</label>
                     <select className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#263B52]">
-                      <option>CSCS Green Labourer Card &amp; Test Enquiry</option>
-                      <option>CITB SMSTS / SSSTS Management Course</option>
-                      <option>Corporate On-Site Group Training (PO Invoicing)</option>
-                      <option>Safety Critical Medicals (Day Rate Booking)</option>
+                      <option>CSCS Card Application</option>
+                      <option>CITB Health, Safety &amp; Environment Test</option>
+                      <option>Training Courses</option>
+                      <option>Green Labourer Card Package</option>
+                      <option>Other (please specify)</option>
                     </select>
                   </div>
                   <button type="submit" className="w-full py-3 rounded-lg bg-[#263B52] text-white font-bold hover:bg-[#1B2A3B] transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm">
@@ -1369,27 +1322,135 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
               <h1 className="text-2xl sm:text-3xl font-extrabold text-[#263B52]">
                 Privacy Policy
               </h1>
-              <p className="text-sm text-slate-500">
-                Site Safe Alliance Ltd • UK Data Protection &amp; Privacy Notice
-              </p>
             </div>
 
             <div className="bg-white rounded-xl border border-slate-200 p-6 sm:p-8 space-y-6 text-sm text-slate-700 leading-relaxed shadow-xs">
               <p>
-                Site Safe Alliance Ltd is committed to respecting your privacy and protecting personal data collected in connection with CITB test bookings, CSCS card verifications, and qualification delivery.
+                Site Safe Alliance Ltd (“we”, “us”, “our”) is committed to protecting and respecting your privacy.
               </p>
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600 space-y-2">
-                <p className="font-semibold text-slate-800">
-                  Privacy Policy context placeholder:
-                </p>
-                <p>
-                  The full privacy policy and data governance terms will be placed here based on your forthcoming requirements.
+              <p>
+                This Privacy Policy explains how we collect, use, store, and protect your personal data when you use our website or services.
+              </p>
+
+              <div className="space-y-2 pt-4 border-t border-slate-100">
+                <h2 className="text-base font-bold text-slate-900">1. Information We Collect</h2>
+                <p>We may collect and process the following personal data:</p>
+                <ul className="list-disc pl-5 space-y-1 text-slate-600">
+                  <li>Full name</li>
+                  <li>Phone number</li>
+                  <li>Email address</li>
+                  <li>Address (if required for applications)</li>
+                  <li>Identification details (where required for bookings)</li>
+                  <li>Employment or qualification information relevant to CITB/CSCS applications</li>
+                  <li>Any other information you provide when contacting us or using our services</li>
+                </ul>
+              </div>
+
+              <div className="space-y-2 pt-4 border-t border-slate-100">
+                <h2 className="text-base font-bold text-slate-900">2. How We Use Your Information</h2>
+                <p>We use your personal data to:</p>
+                <ul className="list-disc pl-5 space-y-1 text-slate-600">
+                  <li>Provide administrative support services</li>
+                  <li>Process CITB Health, Safety &amp; Environment (HS&amp;E) Test bookings</li>
+                  <li>Assist with CSCS card applications</li>
+                  <li>Arrange construction training bookings</li>
+                  <li>Communicate with you regarding your booking or enquiry</li>
+                  <li>Meet legal and regulatory obligations</li>
+                </ul>
+              </div>
+
+              <div className="space-y-2 pt-4 border-t border-slate-100">
+                <h2 className="text-base font-bold text-slate-900">3. Legal Basis for Processing</h2>
+                <p>We process your personal data based on:</p>
+                <ul className="list-disc pl-5 space-y-1 text-slate-600">
+                  <li>Contractual necessity (to deliver services you request)</li>
+                  <li>Legal obligations</li>
+                  <li>Legitimate business interests (to operate and improve our services)</li>
+                </ul>
+              </div>
+
+              <div className="space-y-2 pt-4 border-t border-slate-100">
+                <h2 className="text-base font-bold text-slate-900">4. Sharing Your Information</h2>
+                <p>We may share your personal information only where necessary to provide the services you have requested. This may include:</p>
+                <ul className="list-disc pl-5 space-y-1 text-slate-600">
+                  <li>CITB (Construction Industry Training Board)</li>
+                  <li>CSCS (Construction Skills Certification Scheme)</li>
+                  <li>Pearson VUE (where applicable)</li>
+                  <li>Approved construction training providers</li>
+                  <li>Secure payment processors (where applicable)</li>
+                  <li>Other service providers necessary to complete your booking or application</li>
+                </ul>
+                <p className="pt-2">
+                  We only share the information required to process the requested service.
                 </p>
               </div>
 
-              <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="space-y-2 pt-4 border-t border-slate-100">
+                <h2 className="text-base font-bold text-slate-900">5. Data Storage and Security</h2>
+                <p>
+                  We take appropriate technical and organisational measures to protect your data against loss, misuse, unauthorised access, disclosure, or alteration. Your data is stored securely and is only accessed by authorised personnel.
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-4 border-t border-slate-100">
+                <h2 className="text-base font-bold text-slate-900">6. Data Retention</h2>
+                <p>
+                  We retain personal data only for as long as necessary to provide services, comply with legal obligations, resolve disputes, and maintain business records. After this period, data is securely deleted or anonymised.
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-4 border-t border-slate-100">
+                <h2 className="text-base font-bold text-slate-900">7. Your Rights</h2>
+                <p>Under UK GDPR, you have the right to:</p>
+                <ul className="list-disc pl-5 space-y-1 text-slate-600">
+                  <li>Request access to your personal data</li>
+                  <li>Request correction of inaccurate data</li>
+                  <li>Request deletion of your data (where applicable)</li>
+                  <li>Object to processing in certain circumstances</li>
+                  <li>Request restriction of processing</li>
+                </ul>
+                <p className="pt-2">
+                  To exercise these rights, please contact us using the details on our website.
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-4 border-t border-slate-100">
+                <h2 className="text-base font-bold text-slate-900">8. Third-Party Services</h2>
+                <p>
+                  Site Safe Alliance Ltd is an independent administrative support company. We assist customers with bookings and applications using third-party organisations’ systems where required.
+                </p>
+                <p>
+                  We are not affiliated with, endorsed by, or acting on behalf of CITB, CSCS, Pearson VUE, or any training provider.
+                </p>
+                <p>
+                  Services provided by these organisations remain subject to their own terms, conditions, policies, and decisions.
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-4 border-t border-slate-100">
+                <h2 className="text-base font-bold text-slate-900">9. International Users</h2>
+                <p>
+                  If you are located outside the UK, your information may be transferred to and processed in the United Kingdom for the purpose of providing our services.
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-4 border-t border-slate-100">
+                <h2 className="text-base font-bold text-slate-900">10. Changes to This Policy</h2>
+                <p>
+                  We may update this Privacy Policy from time to time. Any changes will be published on this page.
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-4 border-t border-slate-100">
+                <h2 className="text-base font-bold text-slate-900">11. Contact Us</h2>
+                <p>
+                  If you have any questions about this Privacy Policy or how we process your personal data, please contact us using the details provided on our website.
+                </p>
+              </div>
+
+              <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <p className="text-xs text-slate-500">
-                  Learn more about our training accreditations and provider standards:
+                  Read more about our independent administrative role:
                 </p>
                 <button
                   onClick={() => navigateTo('about')}
@@ -1404,7 +1465,7 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
             <div className="flex items-center gap-3">
               <button
                 onClick={() => navigateTo('home')}
-                className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs transition-colors"
+                className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs transition-colors cursor-pointer"
               >
                 &larr; Return to Home
               </button>
@@ -1425,27 +1486,128 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
               <h1 className="text-2xl sm:text-3xl font-extrabold text-[#263B52]">
                 Terms &amp; Conditions
               </h1>
-              <p className="text-sm text-slate-500">
-                Site Safe Alliance Ltd • Candidate &amp; Employer Service Terms
-              </p>
             </div>
 
             <div className="bg-white rounded-xl border border-slate-200 p-6 sm:p-8 space-y-6 text-sm text-slate-700 leading-relaxed shadow-xs">
               <p>
-                These terms govern candidates and corporate organizations booking CITB Health, Safety &amp; Environment tests, CSCS card processing, and accredited construction safety training.
+                Please read these Terms &amp; Conditions carefully. By accessing our website or using our services, you agree to be bound by these terms.
               </p>
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600 space-y-2">
-                <p className="font-semibold text-slate-800">
-                  Terms &amp; Conditions context placeholder:
-                </p>
+
+              <div className="space-y-2 pt-4 border-t border-slate-100">
+                <h2 className="text-base font-bold text-slate-900">1. Introduction</h2>
                 <p>
-                  The full booking terms, retake policies, and delegate requirements will be placed here based on your forthcoming requirements.
+                  These Terms &amp; Conditions govern your use of the Site Safe Alliance Ltd website and the administrative support services we provide.
                 </p>
               </div>
 
-              <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="space-y-2 pt-4 border-t border-slate-100">
+                <h2 className="text-base font-bold text-slate-900">2. Services</h2>
+                <p>
+                  Site Safe Alliance Ltd is an independent administrative support company. We assist customers with:
+                </p>
+                <ul className="list-disc pl-5 space-y-1 text-slate-600">
+                  <li>CITB Health, Safety &amp; Environment (HS&amp;E) Test bookings</li>
+                  <li>CSCS card application assistance</li>
+                  <li>Construction training bookings</li>
+                </ul>
+                <p className="pt-2">
+                  We are not affiliated with, endorsed by, or acting on behalf of CITB, CSCS, Pearson VUE, or any training provider. We do not issue CITB tests, CSCS cards, or training certificates.
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-4 border-t border-slate-100">
+                <h2 className="text-base font-bold text-slate-900">3. Booking and Payment</h2>
+                <p>
+                  All bookings are subject to availability and confirmation by the relevant third-party organisation.
+                </p>
+                <p>
+                  The prices for our administrative support services are displayed on our website and may be updated from time to time without prior notice.
+                </p>
+                <p>
+                  Where applicable, the official CITB Health, Safety &amp; Environment (HS&amp;E) Test fee and any separate Site Safe Alliance Ltd administration or service fee will be clearly identified before payment is made.
+                </p>
+                <p>
+                  Payments made to third-party organisations remain subject to their own terms, conditions, pricing, and policies.
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-4 border-t border-slate-100">
+                <h2 className="text-base font-bold text-slate-900">4. Cancellations and Refunds</h2>
+                <p>
+                  Cancellation, rescheduling, and refund policies vary depending on the relevant third-party organisation, including CITB, Pearson VUE, CSCS, and approved training providers.
+                </p>
+                <p>
+                  Please contact us regarding your specific booking, and we will advise you of the applicable policy.
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-4 border-t border-slate-100">
+                <h2 className="text-base font-bold text-slate-900">5. Accuracy of Information</h2>
+                <p>
+                  You are responsible for ensuring that all information provided to us is accurate, complete, and up to date.
+                </p>
+                <p>
+                  Site Safe Alliance Ltd is not responsible for delays, rejected applications, failed bookings, or additional costs arising from inaccurate or incomplete information supplied by the customer.
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-4 border-t border-slate-100">
+                <h2 className="text-base font-bold text-slate-900">6. Intellectual Property</h2>
+                <p>
+                  All content on this website, including text, graphics, logos, images, and other materials, is the property of Site Safe Alliance Ltd or its licensors and is protected by applicable intellectual property laws.
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-4 border-t border-slate-100">
+                <h2 className="text-base font-bold text-slate-900">7. Limitation of Liability</h2>
+                <p>
+                  To the fullest extent permitted by law, Site Safe Alliance Ltd shall not be liable for any indirect, incidental, consequential, or special damages arising from the use of our website or services.
+                </p>
+                <p>
+                  Our total liability shall not exceed the amount paid by the customer for the specific administrative support service provided.
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-4 border-t border-slate-100">
+                <h2 className="text-base font-bold text-slate-900">8. Third-Party Services</h2>
+                <p>
+                  Site Safe Alliance Ltd provides independent administrative support services. We assist customers with bookings and applications using third-party organisations’ systems where required.
+                </p>
+                <p>
+                  We are not affiliated with, endorsed by, or acting on behalf of CITB, CSCS, Pearson VUE, or any training provider.
+                </p>
+                <p>
+                  Any services provided by third-party organisations remain subject to their own terms, conditions, policies, procedures, pricing, and decisions. Site Safe Alliance Ltd is not responsible for the actions, omissions, delays, or decisions of those organisations.
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-4 border-t border-slate-100">
+                <h2 className="text-base font-bold text-slate-900">9. Governing Law</h2>
+                <p>
+                  These Terms &amp; Conditions shall be governed by and construed in accordance with the laws of England and Wales.
+                </p>
+                <p>
+                  Any disputes shall be subject to the exclusive jurisdiction of the courts of England and Wales.
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-4 border-t border-slate-100">
+                <h2 className="text-base font-bold text-slate-900">10. Changes to These Terms</h2>
+                <p>
+                  We may update these Terms &amp; Conditions from time to time. Updated versions will be published on this website. Continued use of our website or services constitutes acceptance of the revised Terms &amp; Conditions.
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-4 border-t border-slate-100">
+                <h2 className="text-base font-bold text-slate-900">11. Contact Us</h2>
+                <p>
+                  If you have any questions regarding these Terms &amp; Conditions, please contact us using the details provided on our website.
+                </p>
+              </div>
+
+              <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <p className="text-xs text-slate-500">
-                  Learn more about our training accreditations and provider standards:
+                  Read more about our independent administrative role:
                 </p>
                 <button
                   onClick={() => navigateTo('about')}
@@ -1460,7 +1622,7 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
             <div className="flex items-center gap-3">
               <button
                 onClick={() => navigateTo('home')}
-                className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs transition-colors"
+                className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs transition-colors cursor-pointer"
               >
                 &larr; Return to Home
               </button>

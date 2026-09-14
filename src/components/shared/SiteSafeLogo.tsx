@@ -10,93 +10,72 @@ interface SiteSafeLogoProps {
 
 export const SiteSafeLogo: React.FC<SiteSafeLogoProps> = ({
   variant = 'horizontal',
-  theme = 'dark',
+  theme = 'light',
   size = 'md',
   showTagline = false,
   className = ''
 }) => {
   // Icon dimensions
   const dimensions = {
-    sm: { icon: 28, textMain: 'text-base', textSub: 'text-[9px]', gap: 'gap-2.5' },
-    md: { icon: 38, textMain: 'text-xl', textSub: 'text-[11px]', gap: 'gap-3' },
-    lg: { icon: 52, textMain: 'text-2xl', textSub: 'text-xs', gap: 'gap-4' },
-    xl: { icon: 72, textMain: 'text-4xl', textSub: 'text-sm', gap: 'gap-5' },
+    sm: { icon: 30, textMain: 'text-xs sm:text-sm tracking-[0.16em]', textLtd: 'text-[9px] tracking-[0.2em]', ruleWidth: 'w-4', gap: 'gap-2.5' },
+    md: { icon: 40, textMain: 'text-sm sm:text-base tracking-[0.18em]', textLtd: 'text-[10px] tracking-[0.24em]', ruleWidth: 'w-6 sm:w-8', gap: 'gap-3' },
+    lg: { icon: 54, textMain: 'text-lg sm:text-xl tracking-[0.2em]', textLtd: 'text-xs tracking-[0.26em]', ruleWidth: 'w-8 sm:w-12', gap: 'gap-3.5' },
+    xl: { icon: 76, textMain: 'text-2xl sm:text-3xl tracking-[0.22em]', textLtd: 'text-sm tracking-[0.28em]', ruleWidth: 'w-12 sm:w-16', gap: 'gap-4' },
   }[size];
 
-  // Refined Color definitions using Deep Navy (#263B52) and Powder Blue (#78A6B8)
-  const themeStyles = {
-    dark: {
-      shieldStroke: '#78A6B8',       // Powder Blue
-      shieldFill: '#1B2A3B',         // Deep Navy Shade
-      shieldBase: '#263B52',         // Deep Navy Core
-      connectionPrimary: '#78A6B8',  // Powder Blue
-      connectionSecondary: '#9BC1CF',// Powder Blue Light Tint for contrast
-      connectionTertiary: '#263B52', // Deep Navy
-      nodeCore: '#FFFFFF',          // Crisp White Node
-      textTitle: 'text-slate-100',
-      textAccent: 'text-[#78A6B8]',
-      textSub: 'text-slate-400',
-      badgeBg: 'bg-[#78A6B8]/15 text-[#9BC1CF] border-[#78A6B8]/30',
-      pulseDot: '#78A6B8'
-    },
+  // Colors based on user image ("OPTION 3 ABSTRACT CONNECTION"):
+  // Navy bracket: #0A192F
+  // Slate/steel blue bracket: #4A7C9F
+  // Central diagonal accent bar: #7289A0
+  const themeColors = {
     light: {
-      shieldStroke: '#263B52',       // Deep Navy
-      shieldFill: '#F4F8FA',         // Light Powder Canvas
-      shieldBase: '#E3ECF1',         // Soft Powder Slate
-      connectionPrimary: '#263B52',  // Deep Navy Core
-      connectionSecondary: '#78A6B8',// Powder Blue
-      connectionTertiary: '#4F7788', // Mid Powder Blue for high contrast
-      nodeCore: '#263B52',          // Deep Navy Node
-      textTitle: 'text-[#263B52]',
-      textAccent: 'text-[#78A6B8]',
-      textSub: 'text-slate-600',
-      badgeBg: 'bg-[#263B52]/10 text-[#263B52] border-[#263B52]/20',
-      pulseDot: '#78A6B8'
+      navy: '#0A192F',
+      blue: '#4A7C9F',
+      accent: '#7289A0',
+      textMain: 'text-[#0A192F]',
+      textLtd: 'text-[#0A192F]',
+      ruleColor: 'bg-[#0A192F]/50',
+      taglineBadge: 'bg-[#0A192F]/5 text-[#0A192F] border-[#0A192F]/20',
+    },
+    dark: {
+      navy: '#78A6B8',
+      blue: '#4A7C9F',
+      accent: '#E2E8F0',
+      textMain: 'text-white',
+      textLtd: 'text-slate-300',
+      ruleColor: 'bg-slate-400/50',
+      taglineBadge: 'bg-white/10 text-white border-white/20',
     },
     'monochrome-white': {
-      shieldStroke: '#FFFFFF',
-      shieldFill: 'transparent',
-      shieldBase: '#FFFFFF',
-      connectionPrimary: '#FFFFFF',
-      connectionSecondary: '#FFFFFF',
-      connectionTertiary: '#FFFFFF',
-      nodeCore: '#FFFFFF',
-      textTitle: 'text-white',
-      textAccent: 'text-white',
-      textSub: 'text-slate-300',
-      badgeBg: 'bg-white/10 text-white border-white/20',
-      pulseDot: '#FFFFFF'
+      navy: '#FFFFFF',
+      blue: '#FFFFFF',
+      accent: '#FFFFFF',
+      textMain: 'text-white',
+      textLtd: 'text-white',
+      ruleColor: 'bg-white/60',
+      taglineBadge: 'bg-white/10 text-white border-white/20',
     },
     'monochrome-black': {
-      shieldStroke: '#263B52',
-      shieldFill: 'transparent',
-      shieldBase: '#263B52',
-      connectionPrimary: '#263B52',
-      connectionSecondary: '#263B52',
-      connectionTertiary: '#263B52',
-      nodeCore: '#263B52',
-      textTitle: 'text-[#263B52]',
-      textAccent: 'text-[#263B52]',
-      textSub: 'text-slate-700',
-      badgeBg: 'bg-slate-200 text-slate-900 border-slate-300',
-      pulseDot: '#263B52'
+      navy: '#0A192F',
+      blue: '#0A192F',
+      accent: '#0A192F',
+      textMain: 'text-[#0A192F]',
+      textLtd: 'text-[#0A192F]',
+      ruleColor: 'bg-[#0A192F]/60',
+      taglineBadge: 'bg-[#0A192F]/10 text-[#0A192F] border-[#0A192F]/30',
     },
     'powder-blue': {
-      shieldStroke: '#9BC1CF',
-      shieldFill: '#263B52',
-      shieldBase: '#1B2A3B',
-      connectionPrimary: '#78A6B8',
-      connectionSecondary: '#FFFFFF',
-      connectionTertiary: '#9BC1CF',
-      nodeCore: '#FFFFFF',
-      textTitle: 'text-white',
-      textAccent: 'text-[#9BC1CF]',
-      textSub: 'text-[#A1C4D4]',
-      badgeBg: 'bg-[#78A6B8]/20 text-[#9BC1CF] border-[#78A6B8]/40',
-      pulseDot: '#9BC1CF'
-    }
+      navy: '#FFFFFF',
+      blue: '#9BC1CF',
+      accent: '#78A6B8',
+      textMain: 'text-white',
+      textLtd: 'text-[#9BC1CF]',
+      ruleColor: 'bg-[#9BC1CF]/50',
+      taglineBadge: 'bg-[#78A6B8]/20 text-[#9BC1CF] border-[#78A6B8]/40',
+    },
   }[theme];
 
+  // SVG Mark matching user's Option 3 "Abstract Connection"
   const iconSvg = (
     <svg
       width={dimensions.icon}
@@ -107,83 +86,57 @@ export const SiteSafeLogo: React.FC<SiteSafeLogoProps> = ({
       className="shrink-0 transition-transform duration-300 group-hover:scale-105"
       id="ssa-abstract-connection-logo"
     >
-      {/* Outer Hexagonal Foundation Shield */}
-      <polygon
-        points="50,6 89,27 89,73 50,94 11,73 11,27"
-        fill={themeStyles.shieldFill}
-        stroke={themeStyles.shieldStroke}
-        strokeWidth="4"
-        strokeLinejoin="round"
-      />
+      <g transform="translate(50, 50) rotate(45)">
+        {/* Top-Left Dark Navy Bracket */}
+        <path
+          d="M -32 -32 L -6 -32 L -6 -20 L -20 -20 L -20 20 L -6 20 L -6 32 L -32 32 Z"
+          fill={themeColors.navy}
+        />
 
-      {/* Abstract Interlocking Connection Network (Deep Navy & Powder Blue) */}
-      
-      {/* Structural Deep Navy Connection Arch: Apex down to Right Base */}
-      <path
-        d="M 50 24 C 67 24, 76 39, 72 66"
-        stroke={themeStyles.connectionPrimary}
-        strokeWidth="6"
-        strokeLinecap="round"
-      />
+        {/* Bottom-Right Steel Blue Bracket */}
+        <path
+          d="M 32 32 L 6 32 L 6 20 L 20 20 L 20 -20 L 6 -20 L 6 -32 L 32 -32 Z"
+          fill={themeColors.blue}
+        />
 
-      {/* Fluid Powder Blue Connection Ribbon: Left Base around through Apex */}
-      <path
-        d="M 28 66 C 24 39, 33 24, 50 24"
-        stroke={themeStyles.connectionSecondary}
-        strokeWidth="6"
-        strokeLinecap="round"
-      />
-
-      {/* Cross-Alliance Foundation Link: Left Base to Right Base */}
-      <path
-        d="M 28 66 C 36 78, 64 78, 72 66"
-        stroke={themeStyles.connectionTertiary}
-        strokeWidth="5"
-        strokeLinecap="round"
-      />
-
-      {/* Central Infinity Interlock / Nexus Hub */}
-      <path
-        d="M 38 46 C 44 38, 56 38, 62 46 C 68 54, 56 64, 50 64 C 44 64, 32 54, 38 46 Z"
-        stroke={themeStyles.connectionSecondary}
-        strokeWidth="3.5"
-        strokeLinejoin="round"
-        fill="none"
-        opacity="0.9"
-      />
-
-      {/* Three Primary Connection Nodes (Candidate, Employer, Training Authority) */}
-      {/* Top Node (Accreditation Authority) */}
-      <circle cx="50" cy="24" r="5.5" fill={themeStyles.connectionPrimary} stroke={themeStyles.nodeCore} strokeWidth="2" />
-      
-      {/* Left Node (Site Operative / Candidate) */}
-      <circle cx="28" cy="66" r="5.5" fill={themeStyles.connectionSecondary} stroke={themeStyles.nodeCore} strokeWidth="2" />
-      
-      {/* Right Node (Corporate Employer / Site) */}
-      <circle cx="72" cy="66" r="5.5" fill={themeStyles.connectionPrimary} stroke={themeStyles.nodeCore} strokeWidth="2" />
-
-      {/* Central Harmonic Nexus Point */}
-      <circle cx="50" cy="51" r="3.5" fill={themeStyles.nodeCore} />
+        {/* Central Diagonal Connection Bar */}
+        <rect
+          x="-4.5"
+          y="-11"
+          width="9"
+          height="22"
+          rx="1.5"
+          fill={themeColors.accent}
+        />
+      </g>
     </svg>
   );
 
   if (variant === 'icon-only') {
-    return <div className={`inline-flex items-center justify-center ${className}`}>{iconSvg}</div>;
+    return (
+      <div className={`inline-flex items-center justify-center ${className}`}>
+        {iconSvg}
+      </div>
+    );
   }
 
   if (variant === 'stacked') {
     return (
-      <div className={`flex flex-col items-center text-center ${dimensions.gap} ${className}`}>
+      <div className={`flex flex-col items-center text-center ${dimensions.gap} ${className} group`}>
         {iconSvg}
-        <div className="flex flex-col items-center">
-          <div className={`font-display font-extrabold tracking-tight ${dimensions.textMain} leading-none ${themeStyles.textTitle}`}>
-            SITE<span className={themeStyles.textAccent}>SAFE</span>
+        <div className="flex flex-col items-center space-y-1">
+          <div className={`font-display font-extrabold uppercase ${dimensions.textMain} leading-tight ${themeColors.textMain}`}>
+            SITE SAFE ALLIANCE
           </div>
-          <div className={`font-sans font-semibold tracking-[0.24em] uppercase mt-1 ${dimensions.textSub} ${themeStyles.textSub}`}>
-            ALLIANCE
+          <div className="flex items-center justify-center gap-2">
+            <span className={`h-[1px] ${dimensions.ruleWidth} ${themeColors.ruleColor}`} />
+            <span className={`font-sans font-bold uppercase ${dimensions.textLtd} ${themeColors.textLtd}`}>
+              LTD
+            </span>
+            <span className={`h-[1px] ${dimensions.ruleWidth} ${themeColors.ruleColor}`} />
           </div>
           {showTagline && (
-            <div className={`mt-1.5 px-2.5 py-0.5 rounded text-[9px] font-semibold tracking-wider uppercase border ${themeStyles.badgeBg}`}>
+            <div className={`mt-1 px-2 py-0.5 rounded text-[9px] font-bold tracking-wider uppercase border ${themeColors.taglineBadge}`}>
               CITB ATO #9841
             </div>
           )}
@@ -194,24 +147,20 @@ export const SiteSafeLogo: React.FC<SiteSafeLogoProps> = ({
 
   // Default: Horizontal Lockup
   return (
-    <div className={`inline-flex items-center ${dimensions.gap} ${className} group`}>
+    <div className={`inline-flex items-center ${dimensions.gap} ${className} group cursor-pointer`}>
       {iconSvg}
       <div className="flex flex-col justify-center">
-        <div className="flex items-center gap-1.5 leading-none">
-          <span className={`font-display font-extrabold tracking-tight ${dimensions.textMain} ${themeStyles.textTitle}`}>
-            SITE<span className={themeStyles.textAccent}>SAFE</span>
-          </span>
-          <span 
-            className="inline-block w-2 h-2 rounded-full animate-pulse" 
-            style={{ backgroundColor: themeStyles.pulseDot }}
-          />
+        <div className={`font-display font-extrabold uppercase ${dimensions.textMain} leading-none ${themeColors.textMain}`}>
+          SITE SAFE ALLIANCE
         </div>
         <div className="flex items-center gap-2 mt-1">
-          <span className={`font-sans font-semibold tracking-[0.26em] uppercase ${dimensions.textSub} ${themeStyles.textSub} leading-none`}>
-            ALLIANCE
+          <span className={`h-[1px] ${dimensions.ruleWidth} ${themeColors.ruleColor}`} />
+          <span className={`font-sans font-bold uppercase ${dimensions.textLtd} ${themeColors.textLtd} leading-none`}>
+            LTD
           </span>
+          <span className={`h-[1px] ${dimensions.ruleWidth} ${themeColors.ruleColor}`} />
           {showTagline && (
-            <span className={`hidden sm:inline-block px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider uppercase border ${themeStyles.badgeBg}`}>
+            <span className={`hidden sm:inline-block px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider uppercase border ${themeColors.taglineBadge}`}>
               CITB ATO
             </span>
           )}

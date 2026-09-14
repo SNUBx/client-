@@ -31,37 +31,6 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
 
   return (
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-sm">
-      {/* Top Status Utility Ribbon */}
-      <div className="bg-slate-50 border-b border-slate-200/60 py-1.5 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
-          <div className="flex items-center gap-3">
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono text-[11px]">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping" />
-              CITB ATO APPROVED #9841
-            </span>
-            <span className="hidden md:inline-flex items-center gap-1 text-slate-600">
-              <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
-              Target: <strong className="text-slate-900 font-semibold">sitesafealliance.co.uk</strong>
-            </span>
-            <span className="hidden lg:inline text-slate-300">|</span>
-            <span className="hidden lg:inline text-slate-500">
-              Performance Budget: <span className="text-amber-700 font-mono font-medium">LCP &lt; 1.2s</span> &bull; <span className="text-emerald-700 font-mono font-medium">WCAG 2.1 AA</span>
-            </span>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5 text-[#263B52] font-mono text-[11px] bg-[#263B52]/10 px-2.5 py-0.5 rounded-full border border-[#263B52]/20">
-              <PhoneCall className="w-3 h-3 text-[#78A6B8]" />
-              <span>Aircall Hotline: +44 20 3608 4780</span>
-            </div>
-            <div className="hidden sm:flex items-center gap-1 text-[11px] text-slate-500 font-mono">
-              <Smartphone className="w-3 h-3 text-slate-400" />
-              <span>Responsive: 375px &rarr; 4K</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Main Bar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div className="flex items-center justify-between">
@@ -70,7 +39,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
             className="cursor-pointer transition-opacity hover:opacity-90"
             id="navbar-brand-logo"
           >
-            <SiteSafeLogo variant="horizontal" size="md" theme="light" showTagline={true} />
+            <SiteSafeLogo variant="horizontal" size="md" theme="light" showTagline={false} />
           </div>
 
           <div className="md:hidden flex items-center gap-1">
