@@ -19,7 +19,6 @@ import {
   FileText, 
   Sparkles, 
   ChevronRight, 
-  ChevronDown,
   Plus, 
   Trash2, 
   Send,
@@ -34,7 +33,7 @@ import {
   Lock
 } from 'lucide-react';
 
-export type WebsitePage = 'home' | 'services' | 'individual-booking' | 'employer-booking' | 'about' | 'contact';
+export type WebsitePage = 'home' | 'services' | 'individual-booking' | 'employer-booking' | 'about' | 'contact' | 'privacy' | 'terms';
 
 interface WebsiteViewProps {
   initialPage?: WebsitePage;
@@ -45,8 +44,7 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
   const [currentPage, setCurrentPage] = useState<WebsitePage>(initialPage);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<'all' | 'core' | 'management' | 'medical'>('all');
-  const [expandedFaq, setExpandedFaq] = useState<number | null>(0);
+  const [selectedCategory, setSelectedCategory] = useState<'all' | 'package' | 'test' | 'course'>('all');
   const [bookingSuccess, setBookingSuccess] = useState<string | null>(null);
 
   // Individual Booking Form State
@@ -119,10 +117,6 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
       case 'cscs-card-app': return { label: '£65 incl. VAT', amount: 65, vatIncluded: true };
       case 'l1-hs-course': return { label: '£200 incl. VAT', amount: 200, vatIncluded: true };
       case 'green-labourer-pkg': return { label: '£320 incl. VAT', amount: 320, vatIncluded: true };
-      case 'smsts-5day': return { label: '£495 + VAT', amount: 495, vatIncluded: false };
-      case 'sssts-2day': return { label: '£260 + VAT', amount: 260, vatIncluded: false };
-      case 'medical-safety-critical': return { label: '£140 + VAT', amount: 140, vatIncluded: false };
-      case 'firstaid-faw': return { label: '£220 + VAT', amount: 220, vatIncluded: false };
       default: return { label: '£320 incl. VAT', amount: 320, vatIncluded: true };
     }
   };
@@ -197,54 +191,6 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
       highlight: false,
       description: 'Accredited 1-day course providing the mandatory lifetime qualification for the 5-Year Green CSCS Labourer Card. Classroom or remote invigilated options.',
       features: ['Lifetime qualification (never expires)', 'Classroom or live online format', 'Ofqual regulated syllabus', 'Free comprehensive study pack']
-    },
-    {
-      id: 'smsts-5day',
-      title: 'CITB SMSTS (Site Management Safety Training Scheme)',
-      category: 'management',
-      price: '£495 + VAT',
-      amount: 495,
-      duration: '5 Days',
-      cert: 'CITB Site Safety Plus',
-      highlight: false,
-      description: 'Industry-standard 5-day certification for site managers, project managers, and directors on Tier-1 and Major Contractors Group sites.',
-      features: ['CITB Site Safety Plus certificate', 'Qualifies for £240 CITB employer levy grant', 'Classroom or live virtual options', 'Official CITB course manual']
-    },
-    {
-      id: 'sssts-2day',
-      title: 'CITB SSSTS (Site Supervisor Safety Training Scheme)',
-      category: 'management',
-      price: '£260 + VAT',
-      amount: 260,
-      duration: '2 Days',
-      cert: 'CITB Site Safety Plus',
-      highlight: false,
-      description: 'Essential 2-day qualification for site supervisors, gangers, team leaders, and foremen covering legal duties and risk mitigation.',
-      features: ['CITB Site Safety Plus certificate', 'Qualifies for £140 CITB employer levy grant', 'Toolbox talks & legal duties', 'Nationwide center availability']
-    },
-    {
-      id: 'medical-safety-critical',
-      title: 'Safety Critical Worker Medical (Fit2Work)',
-      category: 'medical',
-      price: '£140 + VAT',
-      amount: 140,
-      duration: '45 Mins',
-      cert: 'SEQOHS / CBH Compliant',
-      highlight: false,
-      description: 'Mandatory occupational health assessment for plant operators, working at height, and confined space personnel by registered clinicians.',
-      features: ['Audiometry & spirometry testing', 'Vision, musculoskeletal, & urinalysis', 'Same-day digital Fit-to-Work certificate', 'Constructing Better Health compliant']
-    },
-    {
-      id: 'firstaid-faw',
-      title: 'First Aid at Work (FAW 3-Day)',
-      category: 'management',
-      price: '£220 + VAT',
-      amount: 220,
-      duration: '3 Days',
-      cert: 'HSE / Qualsafe Accredited',
-      highlight: false,
-      description: 'Comprehensive first aid qualification compliant with Health and Safety (First-Aid) Regulations 1981 for high-hazard construction environments.',
-      features: ['HSE recognized qualification', 'Valid for 3 years nationwide', 'Hands-on practical CPR & AED training', 'Full course manual included']
     }
   ];
 
@@ -254,29 +200,6 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
                           c.description.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCat && matchesSearch;
   });
-
-  const faqs = [
-    {
-      q: "How quickly will I receive my CSCS Green Labourer Card?",
-      a: "Once you have completed the Level 1 Health & Safety Course and passed the CITB Touchscreen Test, we verify your qualifications directly on the CITB database and submit the application immediately. Your digital smart card is available within 24–48 hours for instant site access via CSCS Smart Check, and your physical plastic NFC card arrives via Royal Mail 1st Class in 3–5 working days."
-    },
-    {
-      q: "What happens if I fail the CITB Touchscreen Test?",
-      a: "When you book the Green Labourer Card Package (£320 incl. VAT), our comprehensive package includes free unlimited retake support. If you do not pass on your first attempt, our dedicated booking advisor will reschedule your test slot at no additional charge until you achieve your certification."
-    },
-    {
-      q: "Can corporate employers pay via Purchase Order (PO) and invoice?",
-      a: "Yes. Approved corporate clients and Tier-1 contractors can book multi-delegate cohorts immediately using our Employer Portal with a valid company Purchase Order number. We offer standard 30-day net billing terms and automated CITB levy grant submission assistance."
-    },
-    {
-      q: "What forms of ID must I bring to the Pearson VUE Test Centre?",
-      a: "You must bring one primary form of government-issued photo identification that contains your photograph and signature (such as a valid UK or International Passport, or UK Photocard Driving Licence). If you do not hold primary photo ID, please contact our helpline on +44 20 3608 4780 for approved citizen card waivers."
-    },
-    {
-      q: "Are the training courses delivered online or in a physical classroom?",
-      a: "We offer both! You can attend in-person at any of our 12 regional training hubs across the UK (London, Birmingham, Manchester, Leeds, Bristol, Glasgow, etc.) or choose our daily live virtual classroom sessions led by certified CITB instructors with online invigilated exams."
-    }
-  ];
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans flex flex-col selection:bg-[#263B52] selection:text-white" id="sitesafe-live-portal">
@@ -403,6 +326,8 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
               <button onClick={() => navigateTo('employer-booking')} className="text-left py-2 px-3 rounded hover:bg-slate-50">Corporate Cohort Booking</button>
               <button onClick={() => navigateTo('about')} className="text-left py-2 px-3 rounded hover:bg-slate-50">About Site Safe Alliance</button>
               <button onClick={() => navigateTo('contact')} className="text-left py-2 px-3 rounded hover:bg-slate-50">Contact &amp; 12 Nationwide Hubs</button>
+              <button onClick={() => navigateTo('privacy')} className="text-left py-2 px-3 rounded hover:bg-slate-50">Privacy Policy</button>
+              <button onClick={() => navigateTo('terms')} className="text-left py-2 px-3 rounded hover:bg-slate-50">Terms &amp; Conditions</button>
             </div>
             <div className="pt-3 border-t border-slate-100 flex flex-col gap-2">
               <button onClick={() => navigateTo('individual-booking')} className="w-full py-2.5 rounded-lg bg-[#263B52] text-white font-bold text-center">
@@ -534,9 +459,6 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
                           <option value="citb-hse-test">CITB Health, Safety & Environment Test — £50 incl. VAT</option>
                           <option value="cscs-card-app">CSCS Card Application — £65 incl. VAT</option>
                           <option value="l1-hs-course">Level 1 Health & Safety in Construction — £200 incl. VAT</option>
-                          <option value="smsts-5day">CITB SMSTS (5-Day Site Management) — £495 + VAT</option>
-                          <option value="sssts-2day">CITB SSSTS (2-Day Site Supervisor) — £260 + VAT</option>
-                          <option value="medical-safety-critical">Safety Critical Medical (Fit2Work) — £140 + VAT</option>
                         </select>
                       </div>
 
@@ -605,9 +527,9 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
                 </div>
                 <button
                   onClick={() => navigateTo('services')}
-                  className="text-xs font-mono font-bold text-[#263B52] hover:underline flex items-center gap-1"
+                  className="text-xs font-mono font-bold text-[#263B52] hover:underline flex items-center gap-1 cursor-pointer"
                 >
-                  View All 18 Courses &rarr;
+                  View Course Directory &rarr;
                 </button>
               </div>
 
@@ -715,111 +637,6 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
               </div>
             </section>
 
-            {/* MANAGEMENT & SITE SAFETY PLUS SHOWCASE */}
-            <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-6">
-              <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
-                  <div>
-                    <h3 className="text-xl font-bold text-slate-900">Site Management &amp; Occupational Health</h3>
-                    <p className="text-xs text-slate-500 mt-0.5">CITB Site Safety Plus and SEQOHS worker health screening</p>
-                  </div>
-                  <span className="text-xs font-mono text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded border border-emerald-200">
-                    Levy Grant Eligible
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-3 flex flex-col justify-between">
-                    <div>
-                      <span className="text-[10px] font-mono font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded">CITB SMSTS (5 Days)</span>
-                      <h4 className="text-sm font-bold text-slate-900 mt-2">Site Management Safety Scheme</h4>
-                      <p className="text-[11px] text-slate-600 mt-1">Mandatory for site managers. Includes £240 employer levy grant trigger.</p>
-                    </div>
-                    <div className="pt-3 border-t border-slate-200 flex items-center justify-between">
-                      <span className="font-mono font-extrabold text-sm text-[#263B52]">£495 <span className="text-[10px] text-slate-500">+VAT</span></span>
-                      <button onClick={() => { setIndivForm({...indivForm, course: 'smsts-5day'}); navigateTo('individual-booking'); }} className="text-xs font-bold text-[#263B52] hover:underline">Book &rarr;</button>
-                    </div>
-                  </div>
-
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-3 flex flex-col justify-between">
-                    <div>
-                      <span className="text-[10px] font-mono font-bold text-sky-800 bg-sky-100 px-2 py-0.5 rounded">CITB SSSTS (2 Days)</span>
-                      <h4 className="text-sm font-bold text-slate-900 mt-2">Site Supervisor Safety Scheme</h4>
-                      <p className="text-[11px] text-slate-600 mt-1">For supervisors, foremen, and gangers. Includes £140 employer levy grant.</p>
-                    </div>
-                    <div className="pt-3 border-t border-slate-200 flex items-center justify-between">
-                      <span className="font-mono font-extrabold text-sm text-[#263B52]">£260 <span className="text-[10px] text-slate-500">+VAT</span></span>
-                      <button onClick={() => { setIndivForm({...indivForm, course: 'sssts-2day'}); navigateTo('individual-booking'); }} className="text-xs font-bold text-[#263B52] hover:underline">Book &rarr;</button>
-                    </div>
-                  </div>
-
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-3 flex flex-col justify-between">
-                    <div>
-                      <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded">Safety Critical Medical</span>
-                      <h4 className="text-sm font-bold text-slate-900 mt-2">Fit2Work Health Assessment</h4>
-                      <p className="text-[11px] text-slate-600 mt-1">45-minute clinical check: hearing, lung function, vision, musculoskeletal.</p>
-                    </div>
-                    <div className="pt-3 border-t border-slate-200 flex items-center justify-between">
-                      <span className="font-mono font-extrabold text-sm text-[#263B52]">£140 <span className="text-[10px] text-slate-500">+VAT</span></span>
-                      <button onClick={() => { setIndivForm({...indivForm, course: 'medical-safety-critical'}); navigateTo('individual-booking'); }} className="text-xs font-bold text-[#263B52] hover:underline">Book &rarr;</button>
-                    </div>
-                  </div>
-
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-3 flex flex-col justify-between">
-                    <div>
-                      <span className="text-[10px] font-mono font-bold text-purple-800 bg-purple-100 px-2 py-0.5 rounded">First Aid at Work</span>
-                      <h4 className="text-sm font-bold text-slate-900 mt-2">FAW 3-Day Qualification</h4>
-                      <p className="text-[11px] text-slate-600 mt-1">HSE-recognized high-risk site first aider certification valid for 3 years.</p>
-                    </div>
-                    <div className="pt-3 border-t border-slate-200 flex items-center justify-between">
-                      <span className="font-mono font-extrabold text-sm text-[#263B52]">£220 <span className="text-[10px] text-slate-500">+VAT</span></span>
-                      <button onClick={() => { setIndivForm({...indivForm, course: 'firstaid-faw'}); navigateTo('individual-booking'); }} className="text-xs font-bold text-[#263B52] hover:underline">Book &rarr;</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* HOW IT WORKS SECTION */}
-            <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
-              <div className="text-center max-w-2xl mx-auto space-y-2">
-                <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900">How to Get Certified in 3 Simple Steps</h2>
-                <p className="text-slate-600 text-xs sm:text-sm">We handle all the paperwork, test scheduling, and direct CITB database registration.</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white rounded-xl p-6 border border-slate-200/90 shadow-xs space-y-3">
-                  <div className="w-10 h-10 rounded-lg bg-[#263B52] text-white flex items-center justify-center font-mono font-bold text-base">
-                    01
-                  </div>
-                  <h3 className="text-base font-bold text-slate-900">Choose Qualification &amp; Date</h3>
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    Select your course, touchscreen test centre location (150+ Pearson VUE hubs), and convenient test slot or webinar date.
-                  </p>
-                </div>
-
-                <div className="bg-white rounded-xl p-6 border border-slate-200/90 shadow-xs space-y-3">
-                  <div className="w-10 h-10 rounded-lg bg-[#263B52] text-white flex items-center justify-center font-mono font-bold text-base">
-                    02
-                  </div>
-                  <h3 className="text-base font-bold text-slate-900">Sit Test or Complete Course</h3>
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    Attend your 1-day course or take your 45-minute touchscreen test with our free study guides and mock preparation tests.
-                  </p>
-                </div>
-
-                <div className="bg-white rounded-xl p-6 border border-slate-200/90 shadow-xs space-y-3">
-                  <div className="w-10 h-10 rounded-lg bg-[#78A6B8] text-slate-950 flex items-center justify-center font-mono font-bold text-base">
-                    03
-                  </div>
-                  <h3 className="text-base font-bold text-slate-900">Receive Official CSCS Card</h3>
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    Get instant digital smart card access in 24 hours, followed by physical card postal dispatch directly to your address.
-                  </p>
-                </div>
-              </div>
-            </section>
-
             {/* AIRCALL TELEPHONY HOTLINE BANNER */}
             <section className="max-w-7xl mx-auto px-4 sm:px-8">
               <div className="bg-gradient-to-r from-[#263B52] to-[#1B2A3B] rounded-2xl p-6 sm:p-10 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 border border-[#78A6B8]/30">
@@ -843,38 +660,11 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
                   </a>
                   <button
                     onClick={() => navigateTo('contact')}
-                    className="px-5 py-3.5 rounded-xl bg-[#78A6B8]/20 hover:bg-[#78A6B8]/30 text-white font-semibold text-xs sm:text-sm border border-[#78A6B8]/40 transition-all"
+                    className="px-5 py-3.5 rounded-xl bg-[#78A6B8]/20 hover:bg-[#78A6B8]/30 text-white font-semibold text-xs sm:text-sm border border-[#78A6B8]/40 transition-all cursor-pointer"
                   >
                     Request Callback
                   </button>
                 </div>
-              </div>
-            </section>
-
-            {/* FAQ ACCORDION */}
-            <section className="max-w-4xl mx-auto px-4 sm:px-8 space-y-6">
-              <div className="text-center space-y-2">
-                <h2 className="text-2xl font-extrabold text-slate-900">Frequently Asked Questions</h2>
-                <p className="text-xs sm:text-sm text-slate-600">Everything you need to know about tests, cards, and corporate invoicing.</p>
-              </div>
-
-              <div className="space-y-3">
-                {faqs.map((faq, idx) => (
-                  <div key={idx} className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
-                    <button
-                      onClick={() => setExpandedFaq(expandedFaq === idx ? null : idx)}
-                      className="w-full p-4 text-left flex items-center justify-between gap-4 font-bold text-xs sm:text-sm text-slate-900 hover:bg-slate-50 transition-colors"
-                    >
-                      <span>{faq.q}</span>
-                      <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${expandedFaq === idx ? 'rotate-180' : ''}`} />
-                    </button>
-                    {expandedFaq === idx && (
-                      <div className="px-4 pb-4 pt-1 text-xs text-slate-600 leading-relaxed border-t border-slate-100">
-                        {faq.a}
-                      </div>
-                    )}
-                  </div>
-                ))}
               </div>
             </section>
           </div>
@@ -902,31 +692,7 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
                     selectedCategory === 'all' ? 'bg-[#263B52] text-white font-bold' : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
-                  All Qualifications ({allCourses.length})
-                </button>
-                <button
-                  onClick={() => setSelectedCategory('core')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all ${
-                    selectedCategory === 'core' ? 'bg-[#263B52] text-white font-bold' : 'text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  Core CSCS &amp; CITB (4)
-                </button>
-                <button
-                  onClick={() => setSelectedCategory('management')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all ${
-                    selectedCategory === 'management' ? 'bg-[#263B52] text-white font-bold' : 'text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  Site Safety Plus (3)
-                </button>
-                <button
-                  onClick={() => setSelectedCategory('medical')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all ${
-                    selectedCategory === 'medical' ? 'bg-[#263B52] text-white font-bold' : 'text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  Medicals (1)
+                  All Core Qualifications ({allCourses.length})
                 </button>
               </div>
 
@@ -1457,46 +1223,42 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
         )}
 
         {/* ========================================================================= */}
-        {/* PAGE 5: ABOUT US & ACCREDITATION STANDARDS                                */}
+        {/* PAGE 5: ABOUT US                                                          */}
         {/* ========================================================================= */}
         {currentPage === 'about' && (
-          <div className="max-w-5xl mx-auto px-4 sm:px-8 py-10 space-y-12">
-            <div className="space-y-4 text-center max-w-3xl mx-auto">
+          <div className="max-w-4xl mx-auto px-4 sm:px-8 py-12 space-y-8">
+            <div className="space-y-3">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#263B52]/10 text-[#263B52] font-mono text-xs font-bold">
                 <ShieldCheck className="w-4 h-4 text-[#78A6B8]" />
-                ABOUT SITE SAFE ALLIANCE LTD
+                ABOUT US
               </div>
-              <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-950 tracking-tight">
-                Zero-Harm Workforce Compliance for the UK Construction Sector.
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-[#263B52]">
+                About Site Safe Alliance
               </h1>
-              <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
-                Site Safe Alliance is a premier UK training and occupational health coalition operating 12 regional centres and 150+ Pearson VUE testing suites across England, Scotland, and Wales. We partner with Tier-1 main contractors, specialist sub-contractors, and self-employed trades to ensure every operative steps on site safely certified.
-              </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs text-center space-y-2">
-                <div className="text-3xl font-extrabold text-[#263B52] font-mono">45,000+</div>
-                <div className="text-xs font-bold text-slate-900">Delegates Certified Annually</div>
-                <p className="text-[11px] text-slate-500">Across CITB, CSCS, and occupational health qualifications.</p>
-              </div>
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs text-center space-y-2">
-                <div className="text-3xl font-extrabold text-emerald-600 font-mono">98.6%</div>
-                <div className="text-xs font-bold text-slate-900">First-Time Pass Rate</div>
-                <p className="text-[11px] text-slate-500">Supported by comprehensive pre-exam study modules.</p>
-              </div>
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs text-center space-y-2">
-                <div className="text-3xl font-extrabold text-[#78A6B8] font-mono">150+ Hubs</div>
-                <div className="text-xs font-bold text-slate-900">Pearson VUE Suites Nationwide</div>
-                <p className="text-[11px] text-slate-500">Convenient testing within 20 miles of 96% of the UK population.</p>
+            <div className="bg-white rounded-xl border border-slate-200 p-6 sm:p-8 space-y-6 text-sm sm:text-base text-slate-700 leading-relaxed shadow-xs">
+              <p>
+                Site Safe Alliance Ltd is an independent administrative support company helping individuals and employers across the UK arrange CITB tests, CSCS card applications and accredited construction training.
+              </p>
+
+              <div className="pt-6 border-t border-slate-200 space-y-2">
+                <h2 className="text-base font-bold text-slate-900">
+                  Important information
+                </h2>
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  Site Safe Alliance Ltd is an independent administrative support provider and is not affiliated with or endorsed by CITB, CSCS or any official regulatory body. We assist with bookings and applications only—we do not conduct tests, issue cards or guarantee outcomes.
+                </p>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-xs space-y-4">
-              <h2 className="text-xl font-bold text-slate-900">Official CITB Approved Training Organisation (ATO) Standards</h2>
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                As an accredited CITB ATO, Site Safe Alliance complies with the Construction Skills Training Standards. We are directly integrated into the CITB Construction Training Register (CTR), meaning delegate qualifications are uploaded automatically upon exam completion, and levy-paying employers receive automatic grant reimbursements directly into their bank accounts without tedious manual claim forms.
-              </p>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigateTo('home')}
+                className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs transition-colors"
+              >
+                &larr; Return to Home
+              </button>
             </div>
           </div>
         )}
@@ -1593,73 +1355,165 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
             </div>
           </div>
         )}
+
+        {/* ========================================================================= */}
+        {/* PAGE 7: PRIVACY POLICY                                                    */}
+        {/* ========================================================================= */}
+        {currentPage === 'privacy' && (
+          <div className="max-w-4xl mx-auto px-4 sm:px-8 py-12 space-y-8">
+            <div className="space-y-3">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#263B52]/10 text-[#263B52] font-mono text-xs font-bold">
+                <ShieldCheck className="w-4 h-4 text-[#78A6B8]" />
+                LEGAL &amp; COMPLIANCE
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-[#263B52]">
+                Privacy Policy
+              </h1>
+              <p className="text-sm text-slate-500">
+                Site Safe Alliance Ltd • UK Data Protection &amp; Privacy Notice
+              </p>
+            </div>
+
+            <div className="bg-white rounded-xl border border-slate-200 p-6 sm:p-8 space-y-6 text-sm text-slate-700 leading-relaxed shadow-xs">
+              <p>
+                Site Safe Alliance Ltd is committed to respecting your privacy and protecting personal data collected in connection with CITB test bookings, CSCS card verifications, and qualification delivery.
+              </p>
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600 space-y-2">
+                <p className="font-semibold text-slate-800">
+                  Privacy Policy context placeholder:
+                </p>
+                <p>
+                  The full privacy policy and data governance terms will be placed here based on your forthcoming requirements.
+                </p>
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <p className="text-xs text-slate-500">
+                  Learn more about our training accreditations and provider standards:
+                </p>
+                <button
+                  onClick={() => navigateTo('about')}
+                  className="px-4 py-2 rounded-lg bg-[#263B52] hover:bg-[#1B2A3B] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <span>Go to About Us</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-[#78A6B8]" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigateTo('home')}
+                className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs transition-colors"
+              >
+                &larr; Return to Home
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* PAGE 8: TERMS & CONDITIONS                                                */}
+        {/* ========================================================================= */}
+        {currentPage === 'terms' && (
+          <div className="max-w-4xl mx-auto px-4 sm:px-8 py-12 space-y-8">
+            <div className="space-y-3">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#263B52]/10 text-[#263B52] font-mono text-xs font-bold">
+                <FileText className="w-4 h-4 text-[#78A6B8]" />
+                TERMS OF SERVICE
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-[#263B52]">
+                Terms &amp; Conditions
+              </h1>
+              <p className="text-sm text-slate-500">
+                Site Safe Alliance Ltd • Candidate &amp; Employer Service Terms
+              </p>
+            </div>
+
+            <div className="bg-white rounded-xl border border-slate-200 p-6 sm:p-8 space-y-6 text-sm text-slate-700 leading-relaxed shadow-xs">
+              <p>
+                These terms govern candidates and corporate organizations booking CITB Health, Safety &amp; Environment tests, CSCS card processing, and accredited construction safety training.
+              </p>
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600 space-y-2">
+                <p className="font-semibold text-slate-800">
+                  Terms &amp; Conditions context placeholder:
+                </p>
+                <p>
+                  The full booking terms, retake policies, and delegate requirements will be placed here based on your forthcoming requirements.
+                </p>
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <p className="text-xs text-slate-500">
+                  Learn more about our training accreditations and provider standards:
+                </p>
+                <button
+                  onClick={() => navigateTo('about')}
+                  className="px-4 py-2 rounded-lg bg-[#263B52] hover:bg-[#1B2A3B] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <span>Go to About Us</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-[#78A6B8]" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigateTo('home')}
+                className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs transition-colors"
+              >
+                &larr; Return to Home
+              </button>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* 4. CLEAN PRODUCTION FOOTER */}
-      <footer className="bg-slate-900 text-slate-400 text-xs border-t border-slate-800 pt-12 pb-16 px-4 sm:px-8">
-        <div className="max-w-7xl mx-auto space-y-10">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            {/* Brand Column */}
-            <div className="space-y-3 md:col-span-1">
-              <SiteSafeLogo variant="horizontal" size="md" theme="dark" showTagline={true} />
-              <p className="text-[11px] text-slate-400 leading-relaxed">
-                Site Safe Alliance Ltd is an official UK CITB Approved Training Organisation (ATO) and authorized Pearson VUE testing network partner.
-              </p>
-              <div className="text-[10px] font-mono text-slate-500 space-y-0.5 pt-1">
-                <div>UK Company Registration: 08931245</div>
-                <div>VAT Registration: GB 992 8410 12</div>
-                <div>CITB Provider ATO: #9841</div>
-              </div>
+      <footer className="bg-slate-900 text-slate-400 text-xs border-t border-slate-800 py-10 px-4 sm:px-8">
+        <div className="max-w-7xl mx-auto space-y-6">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 pb-6 border-b border-slate-800">
+            {/* Simple Navigation Links: About Us, Privacy Policy, Terms & Conditions */}
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-6 sm:gap-8 text-xs">
+              <button
+                onClick={() => navigateTo('about')}
+                className="text-slate-300 hover:text-white transition-colors cursor-pointer font-medium"
+              >
+                About Us
+              </button>
+              <button
+                onClick={() => navigateTo('privacy')}
+                className="text-slate-300 hover:text-white transition-colors cursor-pointer font-medium"
+              >
+                Privacy Policy
+              </button>
+              <button
+                onClick={() => navigateTo('terms')}
+                className="text-slate-300 hover:text-white transition-colors cursor-pointer font-medium"
+              >
+                Terms &amp; Conditions
+              </button>
+              <button
+                onClick={() => navigateTo('contact')}
+                className="text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                Contact
+              </button>
             </div>
 
-            {/* Core Services Links */}
-            <div className="space-y-3">
-              <h4 className="text-white font-bold text-xs uppercase tracking-wider font-mono">Core Qualifications</h4>
-              <ul className="space-y-2 text-[11px]">
-                <li><button onClick={() => { setIndivForm({...indivForm, course: 'green-labourer-pkg'}); navigateTo('individual-booking'); }} className="hover:text-white">Green Labourer Card Package (£320)</button></li>
-                <li><button onClick={() => { setIndivForm({...indivForm, course: 'citb-hse-test'}); navigateTo('individual-booking'); }} className="hover:text-white">CITB Touchscreen Test (£50)</button></li>
-                <li><button onClick={() => { setIndivForm({...indivForm, course: 'cscs-card-app'}); navigateTo('individual-booking'); }} className="hover:text-white">CSCS Card Application (£65)</button></li>
-                <li><button onClick={() => { setIndivForm({...indivForm, course: 'l1-hs-course'}); navigateTo('individual-booking'); }} className="hover:text-white">Level 1 Health &amp; Safety Course (£200)</button></li>
-                <li><button onClick={() => { setIndivForm({...indivForm, course: 'smsts-5day'}); navigateTo('individual-booking'); }} className="hover:text-white">CITB SMSTS (5-Day Site Management)</button></li>
-              </ul>
-            </div>
-
-            {/* Employers & Centres */}
-            <div className="space-y-3">
-              <h4 className="text-white font-bold text-xs uppercase tracking-wider font-mono">Employers &amp; Portals</h4>
-              <ul className="space-y-2 text-[11px]">
-                <li><button onClick={() => navigateTo('employer-booking')} className="hover:text-white">Corporate Cohort PO Booking</button></li>
-                <li><button onClick={() => navigateTo('services')} className="hover:text-white">Full Course Directory</button></li>
-                <li><button onClick={() => navigateTo('about')} className="hover:text-white">CITB Levy Grant Assistance</button></li>
-                <li><button onClick={() => navigateTo('contact')} className="hover:text-white">150+ Nationwide Test Centres</button></li>
-              </ul>
-            </div>
-
-            {/* Direct Contact */}
-            <div className="space-y-3">
-              <h4 className="text-white font-bold text-xs uppercase tracking-wider font-mono">National Booking Desk</h4>
-              <div className="space-y-2 text-[11px]">
-                <div className="flex items-center gap-2">
-                  <PhoneCall className="w-3.5 h-3.5 text-[#78A6B8]" />
-                  <a href="tel:+442036084780" className="font-mono text-white font-bold hover:underline">
-                    +44 20 3608 4780
-                  </a>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Mail className="w-3.5 h-3.5 text-slate-400" />
-                  <span>bookings@sitesafealliance.co.uk</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
-                  <span>25 Canada Square, Canary Wharf, London E14 5LB</span>
-                </div>
-              </div>
+            {/* Direct Telephone Support */}
+            <div className="flex items-center gap-2 text-xs">
+              <PhoneCall className="w-3.5 h-3.5 text-[#78A6B8]" />
+              <span className="text-slate-400">National Booking Desk:</span>
+              <a href="tel:+442036084780" className="font-mono text-white font-bold hover:underline">
+                +44 20 3608 4780
+              </a>
             </div>
           </div>
 
-          <div className="pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500">
             <div>
-              &copy; 2026 Site Safe Alliance Ltd. All rights reserved. Registered in England and Wales.
+              &copy; 2026 Site Safe Alliance Ltd. All rights reserved.
             </div>
             {onOpenInternalDoc && (
               <button 
