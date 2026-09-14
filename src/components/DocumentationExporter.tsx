@@ -47,13 +47,13 @@ export const DocumentationExporter: React.FC = () => {
 
 | Breakpoint | Query | Target Devices | Grid | Touch Target | Navigation & UI Behavior |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Mobile (sm)** | \`375px - 639px\` | iPhone SE / 13 / 14 / 15, Galaxy S | 4 Cols | Min 48px × 48px | Sticky brand bar + off-canvas drawer + bottom fixed CTA bar ('Book Course' / '0800 999 7483') |
+| **Mobile (sm)** | \`375px - 639px\` | iPhone SE / 13 / 14 / 15, Galaxy S | 4 Cols | Min 48px × 48px | Sticky brand bar + off-canvas drawer + bottom fixed CTA bar ('Book Course' / '+44 20 3608 4780') |
 | **Tablet (md)** | \`640px - 1023px\` | iPad Mini / 10th Gen, Galaxy Tab | 8 Cols | Min 44px × 44px | Compact header + inline search + collapsed drawer |
 | **Desktop (lg)** | \`1024px - 1279px\` | MacBook Air 13", Laptops | 12 Cols | Standard pointer | Full mega-nav dropdowns for Services, About, and Contact |
 | **Ultra-wide (xl/2xl)**| \`1280px - 1920px+\`| 24"/27" Monitors, 4K Displays | 12 Cols | Standard pointer | Max 1440px centered container with expanded course catalog showcase |
 
 ### Key Responsive Rules:
-- **Mobile Fixed CTA Dock:** Viewports under 768px expose a dual-button sticky bar: \`[Quick Book Course]\` and \`[Call 0800 999 7483]\` with direct one-tap telephone initiation.
+- **Mobile Fixed CTA Dock:** Viewports under 768px expose a dual-button sticky bar: \`[Quick Book Course]\` and \`[Call +44 20 3608 4780]\` with direct one-tap telephone initiation.
 - **Dynamic Table Adaptation:** Multi-delegate corporate candidate rosters transform from wide desktop tables into individual expandable candidate cards on mobile.
 - **iOS Safari Font Sizing:** Form input fields maintain a minimum 16px font-size to prevent automatic browser zoom and preserve visual alignment.
 
@@ -97,7 +97,7 @@ export const DocumentationExporter: React.FC = () => {
    - Accreditations (IOSH, Highfield, SEQOHS, ISO 9001)
    - Expert Instructors & Occupational Physicians
 4. **Contact (\`/contact\`):**
-   - 24/7 National Booking Hotlines (0800 999 7483 / 020 7946 0912)
+   - 24/7 National Booking Hotlines (+44 20 3608 4780 / Aircall Smartflow Hotline)
    - 12 Regional Training Centres with interactive maps & transport directions
    - Priority 15-Minute Callback Request Form
 

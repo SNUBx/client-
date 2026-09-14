@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { INTEGRATION_ENDPOINTS } from '../data/scopeData';
+import { INTEGRATION_ENDPOINTS, AIRCALL_SMARTFLOW_SPEC } from '../data/scopeData';
 import { 
   PhoneCall, 
   Cpu, 
@@ -28,7 +28,8 @@ export const IntegrationSimulator: React.FC = () => {
   const [webhookLog, setWebhookLog] = useState<string[]>([
     "[SYSTEM] Webhook listener mounted at https://api.sitesafealliance.co.uk/v1/integrations/...",
     "[CRM] HubSpot & Salesforce contact sync workers active (Polling SLA < 200ms)",
-    "[CTI] 3CX & Twilio VoIP SIP trunks connected to 0800 999 7483"
+    `[AIRCALL] Telephony SIP trunk connected to ${AIRCALL_SMARTFLOW_SPEC.formattedNumber}`,
+    "[SMARTFLOW] Aircall IVR Branching: Opt 1=Individual, Opt 2=HS&E Test, Opt 3=CSCS Card, Opt 4=Corporate Key Accounts"
   ]);
 
   const triggerCallSimulation = (callerType: 'individual' | 'corporate_vip') => {
@@ -38,8 +39,8 @@ export const IntegrationSimulator: React.FC = () => {
     
     const timestamp = new Date().toLocaleTimeString();
     setWebhookLog(prev => [
-      `[${timestamp}] [CTI] Inbound SIP invite received from ${callerType === 'individual' ? '+44 7123 456789' : '+44 20 7946 0912'}...`,
-      `[${timestamp}] [DNI] Virtual Tracking Number: 0800 999 7483 (Campaign: UK CITB SMSTS Search)`,
+      `[${timestamp}] [AIRCALL CTI] Inbound call received on ${AIRCALL_SMARTFLOW_SPEC.formattedNumber} from ${callerType === 'individual' ? '+44 7123 456789' : '+44 20 7946 0912'}...`,
+      `[${timestamp}] [SMARTFLOW] Routing via ${callerType === 'individual' ? 'Branch 1 (Individual Candidate Queue)' : 'Branch 4 (Corporate Tier-1 VIP Queue)'}`,
       ...prev
     ]);
 
@@ -125,14 +126,16 @@ export const IntegrationSimulator: React.FC = () => {
           <div className="p-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm space-y-5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <PhoneCall className="w-4 h-4 text-amber-600" />
-                Inbound Call Trigger & DNI Engine
+                <PhoneCall className="w-4 h-4 text-[#78A6B8]" />
+                Aircall Smartflow &amp; DNI Engine
               </h2>
-              <span className="text-[10px] font-mono text-slate-500 font-medium">0800 999 7483</span>
+              <span className="text-[10px] font-mono text-slate-600 font-semibold bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                {AIRCALL_SMARTFLOW_SPEC.formattedNumber}
+              </span>
             </div>
 
             <p className="text-xs text-slate-600">
-              Click a trigger below to simulate a real customer calling the Site Safe Alliance hotline from their phone:
+              Click a trigger below to simulate a real customer calling the Site Safe Alliance central Aircall hotline:
             </p>
 
             <div className="grid grid-cols-1 gap-3">
@@ -143,13 +146,13 @@ export const IntegrationSimulator: React.FC = () => {
                 id="simulate-individual-call-btn"
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-xs text-amber-800 group-hover:text-amber-900">
-                    Simulate Inbound: Individual Candidate
+                  <span className="font-bold text-xs text-[#263B52] group-hover:text-[#1B2A3B]">
+                    Simulate Inbound: Individual Candidate (Opt. 1)
                   </span>
                   <span className="text-[10px] font-mono text-slate-500 font-medium">+44 7123 456789</span>
                 </div>
                 <p className="text-[11px] text-slate-600">
-                  Candidate calling about an upcoming SMSTS booking in Canary Wharf.
+                  Candidate calling about Green Labourer Card Package (£320) &amp; Canary Wharf booking.
                 </p>
               </button>
 
@@ -160,15 +163,36 @@ export const IntegrationSimulator: React.FC = () => {
                 id="simulate-corporate-call-btn"
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-xs text-sky-800 group-hover:text-sky-900">
-                    Simulate Inbound: Corporate VIP Client
+                  <span className="font-bold text-xs text-[#263B52] group-hover:text-[#1B2A3B]">
+                    Simulate Inbound: Corporate VIP Client (Opt. 4)
                   </span>
                   <span className="text-[10px] font-mono text-slate-500 font-medium">Balfour Group Ltd</span>
                 </div>
                 <p className="text-[11px] text-slate-600">
-                  HSE Director calling regarding a 16-delegate cohort booking for Battersea site.
+                  HSE Director calling regarding a 16-delegate cohort booking with 30-day PO invoicing.
                 </p>
               </button>
+            </div>
+
+            {/* Aircall Smartflow IVR Structure */}
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-[11px]">
+              <div className="flex items-center justify-between">
+                <span className="font-mono font-bold text-slate-800 text-[10px] uppercase flex items-center gap-1">
+                  <Radio className="w-3 h-3 text-[#78A6B8]" /> Aircall Smartflow Routing Branches
+                </span>
+                <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                  Active IVR
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[10px] font-mono">
+                {AIRCALL_SMARTFLOW_SPEC.smartflowEngine.ivrBranches.map((branch) => (
+                  <div key={branch.digit} className="p-2 bg-white rounded border border-slate-200 shadow-2xs space-y-0.5">
+                    <span className="font-bold text-[#263B52] block">Opt {branch.digit}: {branch.serviceName}</span>
+                    <span className="text-slate-500 text-[9px] block">Queue: {branch.targetQueue}</span>
+                    <span className="text-emerald-700 text-[9px] font-semibold block">SLA: &lt;{branch.slaSeconds}s ({branch.assignedSpecialists})</span>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Inbound Call State Card */}

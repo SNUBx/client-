@@ -50,9 +50,9 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5 text-amber-800 font-mono text-[11px] bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
-              <PhoneCall className="w-3 h-3 text-amber-600" />
-              <span>CTI Hotwire: 0800 999 7483</span>
+            <div className="flex items-center gap-1.5 text-[#263B52] font-mono text-[11px] bg-[#263B52]/10 px-2.5 py-0.5 rounded-full border border-[#263B52]/20">
+              <PhoneCall className="w-3 h-3 text-[#78A6B8]" />
+              <span>Aircall Hotline: +44 20 3608 4780</span>
             </div>
             <div className="hidden sm:flex items-center gap-1 text-[11px] text-slate-500 font-mono">
               <Smartphone className="w-3 h-3 text-slate-400" />

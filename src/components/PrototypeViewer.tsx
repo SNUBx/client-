@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { PrototypePage, DelegateCandidate } from '../types';
 import { SiteSafeLogo } from './shared/SiteSafeLogo';
+import { FOUR_CORE_SERVICES } from '../data/scopeData';
 import confetti from 'canvas-confetti';
 import { 
   ShieldCheck, 
@@ -42,7 +43,7 @@ export const PrototypeViewer: React.FC<PrototypeViewerProps> = ({ initialPage = 
   
   // Individual Booking State
   const [indivForm, setIndivForm] = useState({
-    course: 'smsts-5day',
+    course: 'green-labourer-pkg',
     delivery: 'classroom',
     date: '2026-09-14',
     location: 'London East (Canary Wharf Hub)',
@@ -60,6 +61,20 @@ export const PrototypeViewer: React.FC<PrototypeViewerProps> = ({ initialPage = 
     photoId: 'passport',
     gdpr: true,
   });
+
+  const getCoursePriceLabel = (courseKey: string) => {
+    switch (courseKey) {
+      case 'citb-hse-test': return '£50 incl. VAT';
+      case 'cscs-card-app': return '£65 incl. VAT';
+      case 'l1-hs-course': return '£200 incl. VAT';
+      case 'green-labourer-pkg': return '£320 incl. VAT';
+      case 'smsts-5day': return '£495 + VAT';
+      case 'sssts-2day': return '£260 + VAT';
+      case 'hsa-1day': return '£125 + VAT';
+      case 'medical-safety-critical': return '£140 + VAT';
+      default: return '£320 incl. VAT';
+    }
+  };
 
   // Employer Booking State
   const [employerForm, setEmployerForm] = useState({
@@ -209,8 +224,8 @@ export const PrototypeViewer: React.FC<PrototypeViewerProps> = ({ initialPage = 
               </span>
               <span className="text-[10px] text-slate-400 font-semibold uppercase">SSL 256-Bit</span>
             </div>
-            <div className="text-[11px] font-mono text-amber-700 font-semibold hidden sm:block">
-              Tel: 0800 999 7483
+            <div className="text-[11px] font-mono text-[#263B52] font-semibold hidden sm:block bg-[#78A6B8]/15 px-2 py-0.5 rounded">
+              Aircall: +44 20 3608 4780
             </div>
           </div>
 
@@ -292,8 +307,8 @@ export const PrototypeViewer: React.FC<PrototypeViewerProps> = ({ initialPage = 
               <div className="pt-2 border-t border-slate-800 flex flex-col gap-2">
                 <button onClick={() => { setCurrentPage('individual-booking'); setMobileMenuOpen(false); }} className="w-full py-2 rounded bg-amber-500 text-slate-950 font-bold text-center">Book Individual Candidate</button>
                 <button onClick={() => { setCurrentPage('employer-booking'); setMobileMenuOpen(false); }} className="w-full py-2 rounded bg-slate-800 text-slate-200 font-semibold text-center border border-slate-700">Book Employer Group</button>
-                <a href="tel:08009997483" className="w-full py-2 rounded bg-emerald-500/10 text-emerald-400 font-mono text-center border border-emerald-500/20 flex items-center justify-center gap-1.5">
-                  <PhoneCall className="w-3.5 h-3.5" /> 0800 999 7483 (24/7 Desk)
+                <a href="tel:+442036084780" className="w-full py-2 rounded bg-emerald-500/10 text-emerald-400 font-mono text-center border border-emerald-500/20 flex items-center justify-center gap-1.5">
+                  <PhoneCall className="w-3.5 h-3.5" /> +44 20 3608 4780 (Aircall 24/7)
                 </a>
               </div>
             </div>
@@ -367,87 +382,66 @@ export const PrototypeViewer: React.FC<PrototypeViewerProps> = ({ initialPage = 
                   </div>
                 </div>
 
-                {/* Popular Courses Grid */}
+                {/* Core Services Grid */}
                 <div className="px-6 space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h2 className="text-xl font-bold text-white">Popular Accredited Certifications</h2>
-                      <p className="text-xs text-slate-400">Select qualification to begin instant candidate enrollment</p>
+                      <div className="inline-flex items-center gap-1.5 text-[11px] font-mono text-[#78A6B8] uppercase font-bold tracking-wide mb-0.5">
+                        <Sparkles className="w-3.5 h-3.5" /> Core Services & Statutory Qualifications
+                      </div>
+                      <h2 className="text-xl font-bold text-white">Accredited CITB & CSCS Certification</h2>
+                      <p className="text-xs text-slate-400">All prices include VAT with instant booking and direct CITB ATO registration</p>
                     </div>
                     <button 
                       onClick={() => setCurrentPage('services')}
-                      className="text-xs font-mono text-amber-400 hover:underline flex items-center gap-1"
+                      className="text-xs font-mono text-[#78A6B8] hover:underline flex items-center gap-1"
                     >
-                      View All 18 Courses &rarr;
+                      Explore All Courses &rarr;
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="p-5 rounded-xl bg-slate-900 border border-slate-800 hover:border-amber-500/50 transition-all space-y-3 flex flex-col justify-between">
-                      <div className="space-y-2">
-                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                          CITB Flagship
-                        </span>
-                        <h3 className="text-base font-bold text-white">CITB SMSTS (5 Days)</h3>
-                        <p className="text-xs text-slate-400">Site Management Safety Training Scheme for site managers and directors.</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {FOUR_CORE_SERVICES.map((srv) => (
+                      <div 
+                        key={srv.code} 
+                        className="p-4 rounded-xl bg-slate-900 border border-slate-800 hover:border-[#78A6B8]/60 transition-all flex flex-col justify-between space-y-3 group"
+                      >
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[#263B52] text-[#9BC1CF] border border-[#78A6B8]/30">
+                              {srv.code}
+                            </span>
+                            <span className="text-[10px] font-mono text-slate-400 flex items-center gap-1">
+                              <Clock className="w-3 h-3 text-[#78A6B8]" /> {srv.duration}
+                            </span>
+                          </div>
+                          <h3 className="text-sm font-bold text-white group-hover:text-[#9BC1CF] transition-colors leading-snug">
+                            {srv.title}
+                          </h3>
+                          <p className="text-[11px] text-slate-400 line-clamp-2">
+                            {srv.description}
+                          </p>
+                        </div>
+                        
+                        <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
+                          <div>
+                            <span className="text-base font-extrabold text-[#78A6B8] font-mono block">
+                              {srv.priceLabel}
+                            </span>
+                            <span className="text-[9px] font-mono text-slate-400">Fixed Fee</span>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setIndivForm({ ...indivForm, course: srv.code.toLowerCase().replace(/_/g, '-') });
+                              setCurrentPage('individual-booking');
+                            }}
+                            className="px-3 py-1.5 rounded-lg bg-[#263B52] hover:bg-[#1B2A3B] text-white border border-[#78A6B8]/40 font-bold text-xs cursor-pointer transition-all shadow-xs"
+                          >
+                            Book Now
+                          </button>
+                        </div>
                       </div>
-                      <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
-                        <span className="text-base font-extrabold text-amber-400 font-mono">£495 <span className="text-[10px] text-slate-500 font-normal">+VAT</span></span>
-                        <button
-                          onClick={() => {
-                            setIndivForm({ ...indivForm, course: 'smsts-5day' });
-                            setCurrentPage('individual-booking');
-                          }}
-                          className="px-3 py-1.5 rounded-lg bg-amber-500 text-slate-950 font-bold text-xs hover:bg-amber-400 cursor-pointer"
-                        >
-                          Book Now
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="p-5 rounded-xl bg-slate-900 border border-slate-800 hover:border-sky-500/50 transition-all space-y-3 flex flex-col justify-between">
-                      <div className="space-y-2">
-                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20">
-                          Supervisory
-                        </span>
-                        <h3 className="text-base font-bold text-white">CITB SSSTS (2 Days)</h3>
-                        <p className="text-xs text-slate-400">Site Supervisor Safety Training Scheme for gangers, team leads, and foremen.</p>
-                      </div>
-                      <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
-                        <span className="text-base font-extrabold text-sky-400 font-mono">£260 <span className="text-[10px] text-slate-500 font-normal">+VAT</span></span>
-                        <button
-                          onClick={() => {
-                            setIndivForm({ ...indivForm, course: 'sssts-2day' });
-                            setCurrentPage('individual-booking');
-                          }}
-                          className="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700 font-bold text-xs cursor-pointer border border-slate-700"
-                        >
-                          Book Now
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="p-5 rounded-xl bg-slate-900 border border-slate-800 hover:border-emerald-500/50 transition-all space-y-3 flex flex-col justify-between">
-                      <div className="space-y-2">
-                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                          Occupational Health
-                        </span>
-                        <h3 className="text-base font-bold text-white">Safety Critical Medical (Fit2Work)</h3>
-                        <p className="text-xs text-slate-400">SEQOHS occupational health certificates for plant operators, working at heights, & confined spaces.</p>
-                      </div>
-                      <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
-                        <span className="text-base font-extrabold text-emerald-400 font-mono">£140 <span className="text-[10px] text-slate-500 font-normal">+VAT</span></span>
-                        <button
-                          onClick={() => {
-                            setIndivForm({ ...indivForm, course: 'medical-safety-critical' });
-                            setCurrentPage('individual-booking');
-                          }}
-                          className="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700 font-bold text-xs cursor-pointer border border-slate-700"
-                        >
-                          Book Now
-                        </button>
-                      </div>
-                    </div>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -474,35 +468,37 @@ export const PrototypeViewer: React.FC<PrototypeViewerProps> = ({ initialPage = 
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {[
-                    { id: 'smsts', name: 'CITB SMSTS (Site Management Safety)', duration: '5 Days', price: '£495', cert: 'CITB Site Safety Plus', desc: 'Mandatory certification for site managers on Tier-1 and Major Contractors Group (MCG) sites.' },
-                    { id: 'sssts', name: 'CITB SSSTS (Site Supervisor Safety)', duration: '2 Days', price: '£260', cert: 'CITB Site Safety Plus', desc: 'Covers health & safety law, risk assessments, behavioral safety, and toolbox talks.' },
-                    { id: 'hsa', name: 'Health & Safety Awareness (HSA)', duration: '1 Day', price: '£125', cert: 'CSCS Green Labourer Card Prereq', desc: 'Core 1-day awareness required alongside the CITB Touchscreen Operatives test.' },
-                    { id: 'medicals', name: 'Safety Critical Worker Medicals', duration: '45 Mins', price: '£140', cert: 'SEQOHS / CBH Compliant', desc: 'Audiometry, spirometry, eyesight, musculoskeletal check, and Fit to Work certificate.' },
-                    { id: 'firstaid', name: 'First Aid at Work (FAW 3-Day)', duration: '3 Days', price: '£220', cert: 'HSE / Qualsafe Accredited', desc: 'Comprehensive first responder qualification for high-risk construction workplaces.' },
-                    { id: 'asbestos', name: 'UKATA Asbestos Awareness', duration: 'Half Day', price: '£65', cert: 'UKATA Certified', desc: 'Essential awareness for all trades encountering pre-2000 structures.' }
+                    { id: 'citb-hse-test', name: 'CITB Health, Safety & Environment Test', duration: '45 Mins', price: '£50 incl. VAT', cert: 'Pearson VUE / CITB', desc: 'Official CITB touchscreen test required before applying for any new or renewal CSCS card across 150+ UK Pearson centres.' },
+                    { id: 'cscs-card-app', name: 'CSCS Card Application', duration: '24-48h Express', price: '£65 incl. VAT', cert: 'Official CSCS Partner', desc: 'Official card application and verification processing. Instant digital smart card access and NFC card postal dispatch.' },
+                    { id: 'l1-hs-course', name: 'Level 1 Health & Safety in a Construction Environment Course', duration: '1 Day', price: '£200 incl. VAT', cert: 'CITB ATO / Ofqual Lifetime', desc: 'Accredited 1-day course providing the mandatory lifetime qualification for the 5-Year Green CSCS Labourer Card.' },
+                    { id: 'green-labourer-pkg', name: 'Green Labourer Card Package', duration: 'Complete Route', price: '£320 incl. VAT', cert: 'All-In-One Solution', desc: 'Complete package: Level 1 H&S Course + CITB HS&E Touchscreen Test + Official 5-Year Green CSCS Card with guaranteed pass support.' },
+                    { id: 'smsts-5day', name: 'CITB SMSTS (Site Management Safety)', duration: '5 Days', price: '£495 + VAT', cert: 'CITB Site Safety Plus', desc: 'Mandatory certification for site managers on Tier-1 and Major Contractors Group (MCG) sites.' },
+                    { id: 'sssts-2day', name: 'CITB SSSTS (Site Supervisor Safety)', duration: '2 Days', price: '£260 + VAT', cert: 'CITB Site Safety Plus', desc: 'Covers health & safety law, risk assessments, behavioral safety, and toolbox talks.' },
+                    { id: 'medical-safety-critical', name: 'Safety Critical Worker Medicals', duration: '45 Mins', price: '£140 + VAT', cert: 'SEQOHS / CBH Compliant', desc: 'Audiometry, spirometry, eyesight, musculoskeletal check, and Fit to Work certificate.' },
+                    { id: 'firstaid', name: 'First Aid at Work (FAW 3-Day)', duration: '3 Days', price: '£220 + VAT', cert: 'HSE / Qualsafe Accredited', desc: 'Comprehensive first responder qualification for high-risk construction workplaces.' }
                   ]
                     .filter(c => c.name.toLowerCase().includes(searchFilter.toLowerCase()) || c.desc.toLowerCase().includes(searchFilter.toLowerCase()))
                     .map(course => (
-                      <div key={course.id} className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-3 flex flex-col justify-between">
+                      <div key={course.id} className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-3 flex flex-col justify-between hover:border-[#78A6B8]/50 transition-all">
                         <div>
                           <div className="flex items-center justify-between text-xs mb-1">
-                            <span className="font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">{course.cert}</span>
-                            <span className="font-mono text-slate-400 flex items-center gap-1"><Clock className="w-3 h-3 text-amber-400" /> {course.duration}</span>
+                            <span className="font-mono text-[#9BC1CF] bg-[#263B52] px-2 py-0.5 rounded border border-[#78A6B8]/30">{course.cert}</span>
+                            <span className="font-mono text-slate-400 flex items-center gap-1"><Clock className="w-3 h-3 text-[#78A6B8]" /> {course.duration}</span>
                           </div>
                           <h3 className="text-base font-bold text-white">{course.name}</h3>
                           <p className="text-xs text-slate-400 mt-1">{course.desc}</p>
                         </div>
                         <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
-                          <span className="text-lg font-bold text-amber-400 font-mono">{course.price} <span className="text-xs text-slate-500 font-normal">+VAT</span></span>
+                          <span className="text-lg font-bold text-[#78A6B8] font-mono">{course.price}</span>
                           <div className="flex gap-2">
                             <button
                               onClick={() => {
                                 setIndivForm({ ...indivForm, course: course.id });
                                 setCurrentPage('individual-booking');
                               }}
-                              className="px-3 py-1 rounded-lg bg-amber-500 text-slate-950 font-bold text-xs hover:bg-amber-400 cursor-pointer"
+                              className="px-3 py-1.5 rounded-lg bg-[#263B52] hover:bg-[#1B2A3B] text-white border border-[#78A6B8]/40 font-bold text-xs cursor-pointer transition-all"
                             >
-                              Book Candidate
+                              Book Place
                             </button>
                           </div>
                         </div>
@@ -564,17 +560,17 @@ export const PrototypeViewer: React.FC<PrototypeViewerProps> = ({ initialPage = 
                   <div className="space-y-4">
                     <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-3">
                       <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                        <PhoneCall className="w-4 h-4 text-amber-400" />
-                        National Booking Hotlines
+                        <PhoneCall className="w-4 h-4 text-[#78A6B8]" />
+                        National Aircall Booking Hotlines
                       </h3>
                       <div className="space-y-2 text-xs">
                         <div className="p-2.5 rounded bg-slate-950 border border-slate-800 flex justify-between items-center">
-                          <span className="text-slate-300">Individual & Candidate Line:</span>
-                          <a href="tel:08009997483" className="font-mono text-amber-400 font-bold hover:underline">0800 999 7483</a>
+                          <span className="text-slate-300">Central Aircall Telephony:</span>
+                          <a href="tel:+442036084780" className="font-mono text-[#78A6B8] font-bold hover:underline">+44 20 3608 4780</a>
                         </div>
                         <div className="p-2.5 rounded bg-slate-950 border border-slate-800 flex justify-between items-center">
-                          <span className="text-slate-300">Corporate & Group Accounts:</span>
-                          <a href="tel:02079460912" className="font-mono text-sky-400 font-bold hover:underline">020 7946 0912</a>
+                          <span className="text-slate-300">Corporate Smartflow Routing:</span>
+                          <span className="font-mono text-slate-300 font-semibold">+44 20 3608 4780 (Opt. 4)</span>
                         </div>
                         <div className="p-2.5 rounded bg-slate-950 border border-slate-800 flex justify-between items-center">
                           <span className="text-slate-300">Email Enquiries:</span>
@@ -655,11 +651,14 @@ export const PrototypeViewer: React.FC<PrototypeViewerProps> = ({ initialPage = 
                         <select
                           value={indivForm.course}
                           onChange={(e) => setIndivForm({ ...indivForm, course: e.target.value })}
-                          className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-slate-200 font-mono text-xs focus:border-amber-500"
+                          className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-slate-200 font-mono text-xs focus:border-[#78A6B8]"
                         >
+                          <option value="green-labourer-pkg">Green Labourer Card Package - £320 incl. VAT</option>
+                          <option value="citb-hse-test">CITB Health, Safety & Environment Test - £50 incl. VAT</option>
+                          <option value="cscs-card-app">CSCS Card Application - £65 incl. VAT</option>
+                          <option value="l1-hs-course">Level 1 Health & Safety in a Construction Environment Course - £200 incl. VAT</option>
                           <option value="smsts-5day">CITB SMSTS (5 Days) - £495 + VAT</option>
                           <option value="sssts-2day">CITB SSSTS (2 Days) - £260 + VAT</option>
-                          <option value="hsa-1day">Health & Safety Awareness (1 Day) - £125 + VAT</option>
                           <option value="medical-safety-critical">Safety Critical Medical (Fit2Work) - £140 + VAT</option>
                         </select>
                       </div>
@@ -789,11 +788,11 @@ export const PrototypeViewer: React.FC<PrototypeViewerProps> = ({ initialPage = 
                   {/* Submit Button */}
                   <button
                     type="submit"
-                    className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 cursor-pointer transition-all"
+                    className="w-full py-3 rounded-xl bg-[#263B52] hover:bg-[#1B2A3B] text-white border border-[#78A6B8]/40 font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-slate-950/20 cursor-pointer transition-all"
                     id="submit-indiv-booking-btn"
                   >
-                    <CreditCard className="w-4 h-4" />
-                    <span>Confirm Candidate Place & Proceed to Checkout (£495 + VAT)</span>
+                    <CreditCard className="w-4 h-4 text-[#78A6B8]" />
+                    <span>Confirm Candidate Place &amp; Proceed ({getCoursePriceLabel(indivForm.course)})</span>
                   </button>
                 </form>
               </div>
@@ -1004,7 +1003,7 @@ export const PrototypeViewer: React.FC<PrototypeViewerProps> = ({ initialPage = 
               </div>
             </div>
             <div className="text-center text-[10px] text-slate-600 border-t border-slate-800/60 pt-3">
-              &copy; 2026 Site Safe Alliance Ltd &bull; UK Company Reg: 08931245 &bull; VAT: GB 992 8410 12 &bull; 0800 999 7483
+              &copy; 2026 Site Safe Alliance Ltd &bull; UK Company Reg: 08931245 &bull; VAT: GB 992 8410 12 &bull; +44 20 3608 4780
             </div>
           </footer>
 
@@ -1013,15 +1012,15 @@ export const PrototypeViewer: React.FC<PrototypeViewerProps> = ({ initialPage = 
             <div className="sticky bottom-0 z-50 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 p-2.5 flex items-center gap-2">
               <button
                 onClick={() => setCurrentPage('individual-booking')}
-                className="flex-1 py-2 rounded-lg bg-amber-500 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow-md"
+                className="flex-1 py-2 rounded-lg bg-[#263B52] hover:bg-[#1B2A3B] text-white border border-[#78A6B8]/40 font-bold text-xs flex items-center justify-center gap-1.5 shadow-md"
               >
-                <User className="w-3.5 h-3.5" /> Book Course
+                <User className="w-3.5 h-3.5 text-[#78A6B8]" /> Book Course
               </button>
               <a
-                href="tel:08009997483"
-                className="px-3 py-2 rounded-lg bg-emerald-500 text-slate-950 font-bold text-xs flex items-center justify-center gap-1"
+                href="tel:+442036084780"
+                className="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1 shadow-md"
               >
-                <PhoneCall className="w-3.5 h-3.5" /> Call 24/7
+                <PhoneCall className="w-3.5 h-3.5" /> Call +44 20 3608 4780
               </a>
             </div>
           )}

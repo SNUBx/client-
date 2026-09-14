@@ -23,11 +23,16 @@ export interface LogoSpec {
   minimumSizePrint: string;
   minimumSizeDigital: string;
   colorHex: {
-    primaryAmber: string;
-    slateNavy: string;
-    signalEmerald: string;
-    pureLight: string;
-    darkCanvas: string;
+    deepNavy?: string;
+    powderBlue?: string;
+    powderBlueLight?: string;
+    deepNavyDark?: string;
+    primaryAmber?: string;
+    slateNavy?: string;
+    signalEmerald?: string;
+    pureLight?: string;
+    darkCanvas?: string;
+    [key: string]: string | undefined;
   };
   typography: {
     primaryFont: string;
@@ -37,6 +42,21 @@ export interface LogoSpec {
     letterSpacing: string;
   };
   constructionRules: string[];
+}
+
+export interface CoreServiceItem {
+  code: string;
+  title: string;
+  duration: string;
+  priceGbp: number;
+  priceLabel: string;
+  targetAudience: string;
+  accreditations: string[];
+  deliveryOptions: string[];
+  citbGrantRebate: string;
+  description: string;
+  keyModules: string[];
+  smartflowIvrBranch?: string;
 }
 
 export interface NavigationItem {

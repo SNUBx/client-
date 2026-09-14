@@ -763,7 +763,7 @@ export const DocViewer: React.FC<DocViewerProps> = ({ onNavigateTab }) => {
                 <Smartphone className="w-3.5 h-3.5 text-amber-600" /> Mobile Sticky CTA Dock
               </strong>
               <p className="text-slate-600 text-[11px]">
-                On viewports &lt; 768px, a fixed bottom dock exposes dual buttons: <strong>[Quick Book Course]</strong> and <strong>[Call 0800 999 7483]</strong> with one-tap tel: initiation.
+                On viewports &lt; 768px, a fixed bottom dock exposes dual buttons: <strong>[Quick Book Course]</strong> and <strong>[Call +44 20 3608 4780]</strong> with one-tap tel: initiation.
               </p>
             </div>
             <div className="p-3.5 rounded-lg bg-white border border-slate-200 space-y-1 shadow-xs">

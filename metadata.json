@@ -1,6 +1,6 @@
 {
-  "name": "Site Safe Alliance Redesign Scope & Specification",
-  "description": "Comprehensive project scope documentation, interactive design system, form schemas, and CRM/telephony integration blueprint for sitesafealliance.co.uk.",
+  "name": "Site Safe Alliance",
+  "description": "UK Accredited Construction Safety Training, CITB Touchscreen Tests, and Official CSCS Cards. CITB Approved Training Organisation (ATO #9841).",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
