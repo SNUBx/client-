@@ -51,10 +51,9 @@ export const CONFIRMATION_NOTE = "Please select the service you require. Once we
 
 interface WebsiteViewProps {
   initialPage?: WebsitePage;
-  onOpenInternalDoc?: () => void;
 }
 
-export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', onOpenInternalDoc }) => {
+export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }) => {
   const [currentPage, setCurrentPage] = useState<WebsitePage>(initialPage);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -86,6 +85,13 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
     additionalNotes: '',
   });
 
+  // Priority Callback Form State
+  const [contactForm, setContactForm] = useState({
+    fullName: '',
+    phone: '',
+    serviceRequired: 'CSCS Card Application'
+  });
+
   const getCoursePrice = (serviceNameOrKey: string) => {
     switch (serviceNameOrKey) {
       case 'citb-hse-test':
@@ -109,26 +115,122 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
     }
   };
 
-  const handleIndividualSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleIndividualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    confetti({ particleCount: 90, spread: 75, origin: { y: 0.6 } });
-    const ref = `SSA-${Math.floor(100000 + Math.random() * 900000)}`;
+    setIsSubmitting(true);
     const serviceName = indivForm.serviceRequired === 'Other (please specify)' 
       ? (indivForm.otherService || 'Other service') 
       : indivForm.serviceRequired;
-    setBookingSuccess(`Request received for ${indivForm.fullName}! Our team will review your request for "${serviceName}" and contact you at ${indivForm.phone || indivForm.email} to confirm the correct service and complete the booking process. (Ref: ${ref})`);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    let ref = `SSA-${Math.floor(100000 + Math.random() * 900000)}`;
+    let message = `Request received for ${indivForm.fullName}! Our team will review your request for "${serviceName}" and contact you at ${indivForm.phone || indivForm.email} to confirm the correct service and complete the booking process. (Ref: ${ref})`;
+
+    try {
+      const res = await fetch('/api/bookings/individual', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName: indivForm.fullName,
+          email: indivForm.email,
+          phone: indivForm.phone,
+          serviceRequired: indivForm.serviceRequired,
+          otherService: indivForm.otherService,
+          preferredDate: indivForm.preferredDate,
+          additionalNotes: indivForm.additionalNotes
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.referenceNumber) ref = data.referenceNumber;
+        if (data.message) message = `${data.message} (Ref: ${ref})`;
+      }
+    } catch {
+      // Graceful fallback for static hostings like GitHub Pages where /api is not running
+    } finally {
+      setIsSubmitting(false);
+      try {
+        confetti({ particleCount: 90, spread: 75, origin: { y: 0.6 } });
+      } catch {
+        // Safe if confetti fails
+      }
+      setBookingSuccess(message);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
-  const handleEmployerSubmit = (e: React.FormEvent) => {
+  const handleEmployerSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    confetti({ particleCount: 110, spread: 85, origin: { y: 0.6 } });
-    const ref = `CORP-SSA-${Math.floor(100000 + Math.random() * 900000)}`;
+    setIsSubmitting(true);
     const serviceName = employerForm.serviceRequired === 'Other (please specify)' 
       ? (employerForm.otherService || 'Other service') 
       : employerForm.serviceRequired;
-    setBookingSuccess(`Corporate request received for ${employerForm.companyName} (${employerForm.contactName})! Our team will review your enquiry for "${serviceName}" (${employerForm.numberOfEmployees ? `${employerForm.numberOfEmployees} employees` : 'group cohort'}) and contact you at ${employerForm.phone || employerForm.email} to confirm the correct service and complete the booking process. (Ref: ${ref})`);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    let ref = `CORP-SSA-${Math.floor(100000 + Math.random() * 900000)}`;
+    let message = `Corporate request received for ${employerForm.companyName} (${employerForm.contactName})! Our team will review your enquiry for "${serviceName}" (${employerForm.numberOfEmployees ? `${employerForm.numberOfEmployees} employees` : 'group cohort'}) and contact you at ${employerForm.phone || employerForm.email} to confirm the correct service and complete the booking process. (Ref: ${ref})`;
+
+    try {
+      const res = await fetch('/api/bookings/employer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contactName: employerForm.contactName,
+          companyName: employerForm.companyName,
+          email: employerForm.email,
+          phone: employerForm.phone,
+          companyAddress: employerForm.companyAddress,
+          numberOfEmployees: employerForm.numberOfEmployees,
+          serviceRequired: employerForm.serviceRequired,
+          otherService: employerForm.otherService,
+          additionalNotes: employerForm.additionalNotes
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.referenceNumber) ref = data.referenceNumber;
+        if (data.message) message = `${data.message} (Ref: ${ref})`;
+      }
+    } catch {
+      // Graceful fallback for static hostings like GitHub Pages
+    } finally {
+      setIsSubmitting(false);
+      try {
+        confetti({ particleCount: 110, spread: 85, origin: { y: 0.6 } });
+      } catch {
+        // Safe if confetti fails
+      }
+      setBookingSuccess(message);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    let ref = `ENQ-${Math.floor(100000 + Math.random() * 900000)}`;
+    let message = `Thank you ${contactForm.fullName}! A senior booking coordinator will call you back within 15 minutes regarding ${contactForm.serviceRequired}. (Ref: ${ref})`;
+
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(contactForm)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.referenceNumber) ref = data.referenceNumber;
+        if (data.message) message = `${data.message} (Ref: ${ref})`;
+      }
+    } catch {
+      // Graceful fallback
+    } finally {
+      setIsSubmitting(false);
+      setBookingSuccess(message);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   const navigateTo = (page: WebsitePage) => {
@@ -1280,18 +1382,36 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
                   <p className="text-xs text-slate-500 mt-0.5">Need immediate advice or a bespoke group quote? Leave your number.</p>
                 </div>
 
-                <form onSubmit={(e) => { e.preventDefault(); setBookingSuccess("Thank you! A senior booking coordinator will call you back within 15 minutes."); }} className="space-y-3 text-xs">
+                <form onSubmit={handleContactSubmit} className="space-y-3 text-xs">
                   <div>
                     <label className="block text-slate-700 font-semibold mb-1">Your Full Name *</label>
-                    <input type="text" required placeholder="e.g. John Henderson" className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#263B52]" />
+                    <input 
+                      type="text" 
+                      required 
+                      value={contactForm.fullName}
+                      onChange={(e) => setContactForm({ ...contactForm, fullName: e.target.value })}
+                      placeholder="e.g. John Henderson" 
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#263B52]" 
+                    />
                   </div>
                   <div>
                     <label className="block text-slate-700 font-semibold mb-1">Phone Number *</label>
-                    <input type="tel" required placeholder="e.g. +44 7123 456789" className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#263B52] font-mono" />
+                    <input 
+                      type="tel" 
+                      required 
+                      value={contactForm.phone}
+                      onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
+                      placeholder="e.g. +44 7123 456789" 
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#263B52] font-mono" 
+                    />
                   </div>
                   <div>
                     <label className="block text-slate-700 font-semibold mb-1">Service Required / Enquiry Type *</label>
-                    <select className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#263B52]">
+                    <select 
+                      value={contactForm.serviceRequired}
+                      onChange={(e) => setContactForm({ ...contactForm, serviceRequired: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#263B52]"
+                    >
                       <option>CSCS Card Application</option>
                       <option>CITB Health, Safety &amp; Environment Test</option>
                       <option>Training Courses</option>
@@ -1299,9 +1419,13 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
                       <option>Other (please specify)</option>
                     </select>
                   </div>
-                  <button type="submit" className="w-full py-3 rounded-lg bg-[#263B52] text-white font-bold hover:bg-[#1B2A3B] transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm">
+                  <button 
+                    type="submit" 
+                    disabled={isSubmitting}
+                    className="w-full py-3 rounded-lg bg-[#263B52] text-white font-bold hover:bg-[#1B2A3B] transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
+                  >
                     <Send className="w-3.5 h-3.5 text-[#78A6B8]" />
-                    <span>Request Priority Callback</span>
+                    <span>{isSubmitting ? 'Submitting Request...' : 'Request Priority Callback'}</span>
                   </button>
                 </form>
               </div>
@@ -1675,17 +1799,11 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home', 
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500">
             <div>
-              &copy; 2026 Site Safe Alliance Ltd. All rights reserved.
+              &copy; 2026 Site Safe Alliance Ltd. All rights reserved. Registered in England &amp; Wales.
             </div>
-            {onOpenInternalDoc && (
-              <button 
-                onClick={onOpenInternalDoc} 
-                className="text-[10px] font-mono text-slate-600 hover:text-slate-400 transition-colors"
-                title="Open Technical Blueprint Documentation"
-              >
-                [Internal Architecture Spec]
-              </button>
-            )}
+            <div className="text-slate-400 text-[10px]">
+              Independent Administrative Support &amp; CITB Booking Service
+            </div>
           </div>
         </div>
       </footer>

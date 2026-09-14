@@ -34,7 +34,17 @@ jobs:
         run: npm install
 
       - name: Build site
-        run: npm run build
+        run: |
+          REPO_NAME=$(echo "${{ github.repository }}" | cut -d'/' -f2)
+          if [[ "${{ github.repository }}" =~ \.github\.io$ ]]; then
+            export VITE_BASE_PATH="/"
+          else
+            export VITE_BASE_PATH="/${REPO_NAME}/"
+          fi
+          echo "Building with VITE_BASE_PATH=$VITE_BASE_PATH"
+          npm run build
+          # Ensure .nojekyll is present so GitHub Pages never filters out assets
+          touch dist/.nojekyll
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v3
