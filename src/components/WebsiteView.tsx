@@ -5,7 +5,6 @@ import confetti from 'canvas-confetti';
 import { 
   ShieldCheck, 
   Award, 
-  Clock, 
   Calendar, 
   MapPin, 
   CreditCard, 
@@ -454,7 +453,7 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
                   </div>
 
                   <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-950 tracking-tight leading-tight">
-                    UK Construction Safety Training, CITB Tests &amp; Official CSCS Cards.
+                    CITB Tests &amp; Official CSCS Cards.
                   </h1>
 
                   <p className="text-slate-600 text-base sm:text-lg leading-relaxed max-w-2xl">
@@ -654,10 +653,6 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
                           }`}>
                             {service.code.replace(/_/g, ' ')}
                           </span>
-                          <span className={`font-mono text-[11px] flex items-center gap-1 ${isPackage ? 'text-slate-300' : 'text-slate-500'}`}>
-                            <Clock className={`w-3 h-3 ${isPackage ? 'text-[#78A6B8]' : 'text-slate-400'}`} />
-                            {service.duration}
-                          </span>
                         </div>
 
                         <div>
@@ -817,9 +812,6 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-mono text-[10px] font-bold px-2.5 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200">
                         {course.cert}
-                      </span>
-                      <span className="font-mono text-[11px] text-slate-500 flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-[#78A6B8]" /> {course.duration}
                       </span>
                     </div>
 
