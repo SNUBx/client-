@@ -3,18 +3,26 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Site Safe Alliance — Independent CITB Test &amp; CSCS Card Support</title>
+    <title>Site Safe Alliance — Loading</title>
     <script>
-      // Single Page App redirect for GitHub Pages
-      // Stores path and redirects to base URL so the SPA router handles it
-      sessionStorage.redirect = location.href;
-      var pathSegments = location.pathname.split('/').filter(Boolean);
-      // If deployed at repository root or subpath, redirect to repo root
-      var repo = pathSegments.length > 0 ? '/' + pathSegments[0] + '/' : '/';
-      location.replace(repo);
+      // Safe SPA redirect for GitHub Pages: redirect back to base repository or root URL
+      (function() {
+        var path = window.location.pathname;
+        var segments = path.split('/').filter(Boolean);
+        // If GitHub Pages project site (e.g. /repo-name/page), base is /repo-name/
+        // Otherwise on custom domain or root, base is /
+        var isGitHubPagesSubfolder = window.location.hostname.endsWith('github.io') && segments.length > 0;
+        var targetBase = isGitHubPagesSubfolder ? ('/' + segments[0] + '/') : '/';
+        if (path !== targetBase) {
+          window.location.replace(targetBase);
+        }
+      })();
     </script>
   </head>
-  <body>
-    <p>Redirecting to Site Safe Alliance...</p>
+  <body style="font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f8fafc; color: #334155;">
+    <div style="text-align: center;">
+      <p style="font-weight: 600; font-size: 16px;">Loading Site Safe Alliance...</p>
+      <a href="./" style="color: #263B52; text-decoration: underline; font-size: 14px;">Click here if not redirected</a>
+    </div>
   </body>
 </html>

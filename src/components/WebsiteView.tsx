@@ -488,26 +488,6 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
                       <span>+44 20 3608 4780</span>
                     </a>
                   </div>
-
-                  {/* Trust Indicators */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-slate-200/80">
-                    <div>
-                      <div className="text-xl sm:text-2xl font-extrabold text-[#263B52] font-mono">98.6%</div>
-                      <div className="text-xs text-slate-500 font-medium">Exam Pass Rate</div>
-                    </div>
-                    <div>
-                      <div className="text-xl sm:text-2xl font-extrabold text-[#263B52] font-mono">150+</div>
-                      <div className="text-xs text-slate-500 font-medium">Pearson VUE Centres</div>
-                    </div>
-                    <div>
-                      <div className="text-xl sm:text-2xl font-extrabold text-[#263B52] font-mono">24–48h</div>
-                      <div className="text-xs text-slate-500 font-medium">CSCS Card Dispatch</div>
-                    </div>
-                    <div>
-                      <div className="text-xl sm:text-2xl font-extrabold text-[#263B52] font-mono">45,000+</div>
-                      <div className="text-xs text-slate-500 font-medium">Workers Certified</div>
-                    </div>
-                  </div>
                 </div>
 
                 {/* Hero Quick Booking Card */}

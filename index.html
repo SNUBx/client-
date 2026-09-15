@@ -9,11 +9,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <script>
-      // Ensure trailing slash for GitHub Pages repository subdirectory so relative './assets/...' loads properly
+      // For GitHub Pages repository subpaths (e.g., username.github.io/my-repo without trailing slash),
+      // ensure trailing slash so relative asset resolution './assets/...' works reliably.
       (function() {
+        var host = window.location.hostname;
         var p = window.location.pathname;
-        if (!p.endsWith('/') && !p.includes('.')) {
-          window.location.replace(p + '/' + window.location.search + window.location.hash);
+        if (host.endsWith('github.io') && p.split('/').filter(Boolean).length === 1 && !p.endsWith('/')) {
+          window.location.replace(window.location.origin + p + '/' + window.location.search + window.location.hash);
         }
       })();
     </script>
