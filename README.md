@@ -1,6 +1,6 @@
 # Site Safe Alliance — Production Web Platform
 
-UK Construction Safety Training, CITB Touchscreen Tests, and Official CSCS Cards. CITB Approved Training Organisation (ATO #9841).
+UK Construction Safety Training, CITB Touchscreen Tests, and CSCS Card Administrative Support.
 
 ---
 
@@ -78,12 +78,13 @@ This command builds the optimized bundle into `dist/` and automatically pushes i
 
 ## 🛡️ Key Features & Architecture
 
-- **Accredited Four Core Services**:
-  - Green Labourer Card Package: £320 incl. VAT
-  - CITB Health, Safety & Environment Test: £50 incl. VAT
-  - CSCS Card Application: £65 incl. VAT
-  - Level 1 Health & Safety in a Construction Environment: £200 incl. VAT
+- **Four Core Services**:
+  - Green Labourer Card Package: £342 incl. VAT
+  - CITB Health, Safety & Environment Test: £48
+  - CSCS Card Application: £66 incl. VAT
+  - Training Courses (Level 1 Health & Safety / SSSTS / SMSTS / NVQ): £240 incl. VAT
 - **Corporate Multi-Delegate Invoicing**: Real-time PO billing calculator and cohort roster generator.
-- **Centralized Telephony & Aircall Smartflow**: Connected to `+44 20 3608 4780`.
+- **Centralized Telephony Support**: Connected to `+44 20 3608 4780`.
+- **Pre-Wired Stripe Payments**: Standby architecture ready for instant activation once CRM integration is finalized.
 - **Responsive Architecture**: Built using React 19, TypeScript, Tailwind CSS v4, Lucide icons, and Motion.
 - **Relative Asset Resolution**: Vite is configured with `base: './'` so that static assets load seamlessly whether deployed at the root domain or on any GitHub sub-path.

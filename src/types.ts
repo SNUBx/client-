@@ -20,6 +20,7 @@ export interface IndividualBookingSubmission {
   fullName: string;
   email: string;
   phone: string;
+  address?: string;
   serviceRequired: string;
   otherService?: string;
   preferredDate?: string;

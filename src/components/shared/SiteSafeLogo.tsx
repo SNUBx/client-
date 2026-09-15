@@ -137,7 +137,7 @@ export const SiteSafeLogo: React.FC<SiteSafeLogoProps> = ({
           </div>
           {showTagline && (
             <div className={`mt-1 px-2 py-0.5 rounded text-[9px] font-bold tracking-wider uppercase border ${themeColors.taglineBadge}`}>
-              CITB ATO #9841
+              UK COMPLIANCE
             </div>
           )}
         </div>
@@ -161,7 +161,7 @@ export const SiteSafeLogo: React.FC<SiteSafeLogoProps> = ({
           <span className={`h-[1px] ${dimensions.ruleWidth} ${themeColors.ruleColor}`} />
           {showTagline && (
             <span className={`hidden sm:inline-block px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider uppercase border ${themeColors.taglineBadge}`}>
-              CITB ATO
+              UK COMPLIANCE
             </span>
           )}
         </div>

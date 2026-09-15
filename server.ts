@@ -91,8 +91,8 @@ async function startServer() {
         {
           id: 'cscs-card-app',
           name: 'CSCS Card Application',
-          price: '£55 + VAT',
-          amount: 55,
+          price: '£66 + VAT',
+          amount: 66,
           vatRate: 0.2,
           category: 'Card Processing',
           turnaround: '24–48h Dispatch'
@@ -100,8 +100,8 @@ async function startServer() {
         {
           id: 'citb-hse-test',
           name: 'CITB Health, Safety & Environment Test',
-          price: '£50',
-          amount: 50,
+          price: '£48',
+          amount: 48,
           vatRate: 0.0,
           category: 'Examination',
           turnaround: 'Immediate Score Report'
@@ -109,8 +109,8 @@ async function startServer() {
         {
           id: 'training-courses',
           name: 'Training Courses',
-          price: '£200 + VAT',
-          amount: 200,
+          price: '£240 + VAT',
+          amount: 240,
           vatRate: 0.2,
           category: 'Accredited Training',
           turnaround: '1-Day Award'
@@ -118,8 +118,8 @@ async function startServer() {
         {
           id: 'green-labourer-pkg',
           name: 'Green Labourer Card Package',
-          price: '£295 + VAT',
-          amount: 295,
+          price: '£342 + VAT',
+          amount: 342,
           vatRate: 0.2,
           category: 'All-In-One Package',
           turnaround: 'Complete Route'
