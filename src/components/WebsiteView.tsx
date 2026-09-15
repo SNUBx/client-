@@ -1,6 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { FOUR_CORE_SERVICES } from '../data/scopeData';
 import { SiteSafeLogo } from './shared/SiteSafeLogo';
+import { ENABLE_ONLINE_PAYMENTS, createStripeCheckoutSession } from '../config/payments';
 import confetti from 'canvas-confetti';
 import { 
   ShieldCheck, 
@@ -39,10 +40,10 @@ import {
 export type WebsitePage = 'home' | 'services' | 'individual-booking' | 'employer-booking' | 'about' | 'contact' | 'privacy' | 'terms';
 
 export const SERVICE_OPTIONS = [
-  { id: 'cscs-card-app', name: 'CSCS Card Application', price: '£55 + VAT' },
-  { id: 'citb-hse-test', name: 'CITB Health, Safety & Environment Test', price: '£50' },
-  { id: 'training-courses', name: 'Training Courses', price: '£200 + VAT' },
-  { id: 'green-labourer-pkg', name: 'Green Labourer Card Package', price: '£295 + VAT' },
+  { id: 'cscs-card-app', name: 'CSCS Card Application', price: '£66 + VAT' },
+  { id: 'citb-hse-test', name: 'CITB Health, Safety & Environment Test', price: '£48' },
+  { id: 'training-courses', name: 'Training Courses', price: '£240 + VAT' },
+  { id: 'green-labourer-pkg', name: 'Green Labourer Card Package', price: '£342 + VAT' },
   { id: 'other', name: 'Other (please specify)', price: '' },
 ];
 
@@ -58,12 +59,31 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'package' | 'test' | 'course'>('all');
   const [bookingSuccess, setBookingSuccess] = useState<string | null>(null);
+  const [paymentNotice, setPaymentNotice] = useState<string | null>(null);
+
+  // Check for Stripe redirect returns (success or cancel)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const paymentStatus = params.get('payment');
+      const ref = params.get('ref');
+      if (paymentStatus === 'success') {
+        setBookingSuccess(`Payment successful! Your application reference is ${ref || 'SSA-PAID'}. Our team has received your confirmed payment and will proceed with priority processing.`);
+        try {
+          confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+        } catch {}
+      } else if (paymentStatus === 'cancelled') {
+        setPaymentNotice('Payment checkout was cancelled. Your booking details have not been lost; our team can assist you over the phone or by invoice.');
+      }
+    }
+  }, []);
 
   // Book for Yourself Form State
   const [indivForm, setIndivForm] = useState({
     fullName: '',
     email: '',
     phone: '',
+    address: '',
     serviceRequired: 'CSCS Card Application',
     otherService: '',
     preferredDate: '',
@@ -95,28 +115,28 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
     switch (serviceNameOrKey) {
       case 'citb-hse-test':
       case 'CITB Health, Safety & Environment Test':
-        return { label: '£50', amount: 50, vatIncluded: false };
+        return { label: '£48', amount: 48, vatIncluded: false };
       case 'cscs-card-app':
       case 'CSCS Card Application':
-        return { label: '£55 + VAT', amount: 55, vatIncluded: true };
+        return { label: '£66 INC. VAT', amount: 66, vatIncluded: true };
       case 'training-courses':
       case 'l1-hs-course':
       case 'Training Courses':
-        return { label: '£200 + VAT', amount: 200, vatIncluded: true };
+        return { label: '£240 INC. VAT', amount: 240, vatIncluded: true };
       case 'green-labourer-pkg':
       case 'Green Labourer Card Package':
-        return { label: '£295 + VAT', amount: 295, vatIncluded: true };
+        return { label: '£342 INC. VAT', amount: 342, vatIncluded: true };
       case 'other':
       case 'Other (please specify)':
         return { label: 'Quote on review', amount: 0, vatIncluded: false };
       default:
-        return { label: '£295 + VAT', amount: 295, vatIncluded: true };
+        return { label: '£342 INC. VAT', amount: 342, vatIncluded: true };
     }
   };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleIndividualSubmit = async (e: React.FormEvent) => {
+  const handleIndividualSubmit = async (e: React.FormEvent, payNowWithStripe: boolean = false) => {
     e.preventDefault();
     setIsSubmitting(true);
     const serviceName = indivForm.serviceRequired === 'Other (please specify)' 
@@ -134,6 +154,7 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
           fullName: indivForm.fullName,
           email: indivForm.email,
           phone: indivForm.phone,
+          address: indivForm.address,
           serviceRequired: indivForm.serviceRequired,
           otherService: indivForm.otherService,
           preferredDate: indivForm.preferredDate,
@@ -145,6 +166,27 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
         const data = await res.json();
         if (data.referenceNumber) ref = data.referenceNumber;
         if (data.message) message = `${data.message} (Ref: ${ref})`;
+      }
+
+      // If user selected Pay Now and payments are enabled:
+      if (payNowWithStripe && ENABLE_ONLINE_PAYMENTS) {
+        const priceInfo = getCoursePrice(indivForm.serviceRequired);
+        if (priceInfo.amount > 0) {
+          const sessionResult = await createStripeCheckoutSession({
+            bookingId: ref,
+            customerName: indivForm.fullName,
+            customerEmail: indivForm.email,
+            customerPhone: indivForm.phone,
+            serviceRequired: serviceName,
+            amountGbp: priceInfo.amount,
+            returnUrl: window.location.origin,
+          });
+
+          if ('url' in sessionResult && sessionResult.url) {
+            window.location.href = sessionResult.url;
+            return;
+          }
+        }
       }
     } catch {
       // Graceful fallback for static hostings like GitHub Pages where /api is not running
@@ -160,7 +202,7 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
     }
   };
 
-  const handleEmployerSubmit = async (e: React.FormEvent) => {
+  const handleEmployerSubmit = async (e: React.FormEvent, payNowWithStripe: boolean = false) => {
     e.preventDefault();
     setIsSubmitting(true);
     const serviceName = employerForm.serviceRequired === 'Other (please specify)' 
@@ -192,6 +234,30 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
         if (data.referenceNumber) ref = data.referenceNumber;
         if (data.message) message = `${data.message} (Ref: ${ref})`;
       }
+
+      // If online payments are enabled and Pay Now requested:
+      if (payNowWithStripe && ENABLE_ONLINE_PAYMENTS) {
+        const priceInfo = getCoursePrice(employerForm.serviceRequired);
+        const count = Math.max(1, parseInt(String(employerForm.numberOfEmployees)) || 1);
+        const totalAmount = priceInfo.amount * count;
+
+        if (totalAmount > 0) {
+          const sessionResult = await createStripeCheckoutSession({
+            bookingId: ref,
+            customerName: `${employerForm.companyName} (${employerForm.contactName})`,
+            customerEmail: employerForm.email,
+            customerPhone: employerForm.phone,
+            serviceRequired: `${serviceName} (${count} employees)`,
+            amountGbp: totalAmount,
+            returnUrl: window.location.origin,
+          });
+
+          if ('url' in sessionResult && sessionResult.url) {
+            window.location.href = sessionResult.url;
+            return;
+          }
+        }
+      }
     } catch {
       // Graceful fallback for static hostings like GitHub Pages
     } finally {
@@ -210,7 +276,7 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
     e.preventDefault();
     setIsSubmitting(true);
     let ref = `ENQ-${Math.floor(100000 + Math.random() * 900000)}`;
-    let message = `Thank you ${contactForm.fullName}! A senior booking coordinator will call you back within 15 minutes regarding ${contactForm.serviceRequired}. (Ref: ${ref})`;
+    let message = `Thank you ${contactForm.fullName}! A senior booking coordinator will call you back regarding ${contactForm.serviceRequired}. (Ref: ${ref})`;
 
     try {
       const res = await fetch('/api/contact', {
@@ -243,48 +309,48 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
       id: 'cscs-card-app',
       title: 'CSCS Card Application',
       category: 'core',
-      price: '£55 + VAT',
-      amount: 55,
+      price: '£66 INC. VAT',
+      amount: 66,
       duration: '24–48h Dispatch',
       cert: 'Official CSCS Card',
       highlight: false,
-      description: 'Official CSCS Card application and verification processing service. Automated test verification and express smart card delivery.',
+      description: 'CSCS card application and verification support.',
       features: ['Qualification & test verification', 'Digital smart pass access', 'Physical smart card dispatch', 'Dedicated application coordinator']
     },
     {
       id: 'citb-hse-test',
       title: 'CITB Health, Safety & Environment Test',
       category: 'core',
-      price: '£50',
-      amount: 50,
+      price: '£48',
+      amount: 48,
       duration: '45 Mins',
       cert: 'Pearson VUE Network',
       highlight: false,
-      description: 'Official 45-minute touchscreen test required for all CSCS cards. Conducted across 150+ UK Pearson VUE testing centres with immediate score printout.',
+      description: 'CITB touchscreen test booking assistance.',
       features: ['Operatives & Specialists test options', '150+ Pearson VUE UK centres', 'Same-day & next-day slots', 'Immediate score report printout']
     },
     {
       id: 'training-courses',
       title: 'Training Courses',
       category: 'core',
-      price: '£200 + VAT',
-      amount: 200,
+      price: '£240 INC. VAT',
+      amount: 240,
       duration: '1 Day',
       cert: '1-Day Level 1 Course',
       highlight: false,
-      description: 'Accredited 1-day Level 1 Health & Safety in a Construction Environment course providing the lifetime qualification for the 5-Year Green CSCS Labourer Card.',
+      description: 'Accredited construction safety training courses.',
       features: ['Lifetime qualification (never expires)', 'Classroom or live online format', 'Ofqual regulated syllabus', 'Free comprehensive study pack']
     },
     {
       id: 'green-labourer-pkg',
       title: 'Green Labourer Card Package',
       category: 'core',
-      price: '£295 + VAT',
-      amount: 295,
+      price: '£342 INC. VAT',
+      amount: 342,
       duration: 'Complete Route',
       cert: 'All-In-One Solution',
       highlight: true,
-      description: 'Complete all-in-one package: 1-Day Level 1 Health & Safety Course + CITB HS&E Touchscreen Test + Official 5-Year Green CSCS Card with free retake support.',
+      description: 'All-in-one training, test and card package.',
       features: ['Regulated Level 1 H&S Course', 'CITB Touchscreen Test Booking', 'Official CSCS Card Application', 'Full support & free retake guidance']
     }
   ];
@@ -329,22 +395,6 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
               Services &amp; Pricing
             </button>
             <button 
-              onClick={() => navigateTo('individual-booking')}
-              className={`transition-colors hover:text-[#263B52] pb-1 cursor-pointer ${
-                currentPage === 'individual-booking' ? 'text-[#263B52] font-bold border-b-2 border-[#263B52]' : ''
-              }`}
-            >
-              Book for Yourself
-            </button>
-            <button 
-              onClick={() => navigateTo('employer-booking')}
-              className={`transition-colors hover:text-[#263B52] pb-1 cursor-pointer ${
-                currentPage === 'employer-booking' ? 'text-[#263B52] font-bold border-b-2 border-[#263B52]' : ''
-              }`}
-            >
-              Book for Your Employees
-            </button>
-            <button 
               onClick={() => navigateTo('about')}
               className={`transition-colors hover:text-[#263B52] pb-1 cursor-pointer ${
                 currentPage === 'about' ? 'text-[#263B52] font-bold border-b-2 border-[#263B52]' : ''
@@ -358,7 +408,7 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
                 currentPage === 'contact' ? 'text-[#263B52] font-bold border-b-2 border-[#263B52]' : ''
               }`}
             >
-              Centres &amp; Contact
+              Contact
             </button>
           </nav>
 
@@ -402,7 +452,7 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
               <button onClick={() => navigateTo('individual-booking')} className="text-left py-2 px-3 rounded hover:bg-slate-50">Book for Yourself</button>
               <button onClick={() => navigateTo('employer-booking')} className="text-left py-2 px-3 rounded hover:bg-slate-50">Book for Your Employees</button>
               <button onClick={() => navigateTo('about')} className="text-left py-2 px-3 rounded hover:bg-slate-50">About Site Safe Alliance</button>
-              <button onClick={() => navigateTo('contact')} className="text-left py-2 px-3 rounded hover:bg-slate-50">Contact &amp; 12 Nationwide Hubs</button>
+              <button onClick={() => navigateTo('contact')} className="text-left py-2 px-3 rounded hover:bg-slate-50">Contact</button>
               <button onClick={() => navigateTo('privacy')} className="text-left py-2 px-3 rounded hover:bg-slate-50">Privacy Policy</button>
               <button onClick={() => navigateTo('terms')} className="text-left py-2 px-3 rounded hover:bg-slate-50">Terms &amp; Conditions</button>
             </div>
@@ -428,7 +478,25 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
             </div>
             <button 
               onClick={() => setBookingSuccess(null)}
-              className="text-emerald-100 hover:text-white font-mono text-xs px-2 py-0.5 rounded bg-emerald-700/50"
+              className="text-emerald-100 hover:text-white font-mono text-xs px-2 py-0.5 rounded bg-emerald-700/50 cursor-pointer"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* PAYMENT / STANDBY NOTIFICATION TOAST */}
+      {paymentNotice && (
+        <div className="bg-amber-600 text-white px-4 py-3 text-xs shadow-md">
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <Info className="w-4 h-4 text-amber-200 shrink-0" />
+              <span className="font-medium">{paymentNotice}</span>
+            </div>
+            <button 
+              onClick={() => setPaymentNotice(null)}
+              className="text-amber-100 hover:text-white font-mono text-xs px-2 py-0.5 rounded bg-amber-700/50 cursor-pointer"
             >
               Dismiss
             </button>
@@ -449,45 +517,16 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
                 <div className="lg:col-span-7 space-y-6">
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#263B52]/10 border border-[#263B52]/20 text-[#263B52] font-mono text-xs font-semibold">
                     <Award className="w-3.5 h-3.5 text-[#78A6B8]" />
-                    <span>INDEPENDENT CITB &amp; CSCS SUPPORT SERVICES</span>
+                    <span>CITB &amp; CSCS SUPPORT SERVICES</span>
                   </div>
 
                   <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-950 tracking-tight leading-tight">
-                    CITB Tests &amp; Official CSCS Cards.
+                    Get Site-Ready, Faster.
                   </h1>
 
                   <p className="text-slate-600 text-base sm:text-lg leading-relaxed max-w-2xl">
-                    Fast-track accredited certifications for individual tradespeople and multi-delegate Tier-1 contractor workforces across 150+ nationwide Pearson VUE test centres and daily live virtual classrooms.
+                    Site Safe Alliance Ltd is an independent administrative support company helping individuals and employers across the UK arrange CITB tests, CSCS card applications and accredited construction training.
                   </p>
-
-                  <div className="flex flex-wrap items-center gap-3.5 pt-2">
-                    <button
-                      onClick={() => navigateTo('individual-booking')}
-                      className="px-6 py-3.5 rounded-xl bg-[#263B52] hover:bg-[#1B2A3B] text-white font-bold text-sm flex items-center gap-2.5 shadow-md hover:shadow-lg transition-all cursor-pointer"
-                      id="hero-book-candidate-btn"
-                    >
-                      <User className="w-4 h-4 text-[#78A6B8]" />
-                      <span>Book Candidate Place</span>
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-
-                    <button
-                      onClick={() => navigateTo('employer-booking')}
-                      className="px-6 py-3.5 rounded-xl bg-white hover:bg-slate-50 text-slate-800 font-semibold text-sm border border-slate-300 flex items-center gap-2 shadow-xs transition-all cursor-pointer"
-                      id="hero-employer-cohort-btn"
-                    >
-                      <Building2 className="w-4 h-4 text-slate-600" />
-                      <span>Corporate Group / PO</span>
-                    </button>
-
-                    <a
-                      href="tel:+442036084780"
-                      className="px-4 py-3.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-mono font-semibold text-xs sm:text-sm border border-emerald-200 flex items-center gap-2 transition-all"
-                    >
-                      <PhoneCall className="w-4 h-4 text-emerald-600" />
-                      <span>+44 20 3608 4780</span>
-                    </a>
-                  </div>
                 </div>
 
                 {/* Hero Quick Booking Card */}
@@ -523,10 +562,10 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
                           }}
                           className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-medium focus:ring-2 focus:ring-[#263B52] focus:outline-none"
                         >
-                          <option value="CSCS Card Application">CSCS Card Application — £55 + VAT</option>
-                          <option value="CITB Health, Safety & Environment Test">CITB Health, Safety &amp; Environment Test — £50</option>
-                          <option value="Training Courses">Training Courses — £200 + VAT</option>
-                          <option value="Green Labourer Card Package">Green Labourer Card Package — £295 + VAT</option>
+                          <option value="CSCS Card Application">CSCS Card Application — £66 INC. VAT</option>
+                          <option value="CITB Health, Safety & Environment Test">CITB Health, Safety &amp; Environment Test — £48</option>
+                          <option value="Training Courses">Training Courses — £240 INC. VAT</option>
+                          <option value="Green Labourer Card Package">Green Labourer Card Package — £342 INC. VAT</option>
                           <option value="Other (please specify)">Other (please specify)</option>
                         </select>
                       </div>
@@ -587,149 +626,56 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
             <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-6">
               <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-200 pb-5">
                 <div>
-                  <div className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-[#78A6B8] uppercase tracking-wider mb-1">
-                    <Sparkles className="w-3.5 h-3.5" /> Core Qualifications &amp; Statutory Services
-                  </div>
                   <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                    Accredited CITB Tests &amp; CSCS Certification
+                    Our Services
                   </h2>
                   <p className="text-slate-600 text-xs sm:text-sm mt-1">
-                    All prices are transparent with booking assistance, test scheduling, and application support.
+                    Professional booking assistance, test scheduling, and application support.
                   </p>
                 </div>
                 <button
                   onClick={() => navigateTo('services')}
                   className="text-xs font-mono font-bold text-[#263B52] hover:underline flex items-center gap-1 cursor-pointer"
                 >
-                  View Course Directory &rarr;
+                  View Services &amp; Pricing &rarr;
                 </button>
               </div>
 
               {/* The 4 Core Service Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                {FOUR_CORE_SERVICES.map((service) => {
-                  const isPackage = service.code === 'GREEN_LABOURER_PKG';
-                  return (
-                    <div 
-                      key={service.code}
-                      className={`rounded-2xl p-6 flex flex-col justify-between transition-all relative ${
-                        isPackage 
-                          ? 'bg-[#263B52] text-white shadow-lg border-2 border-[#78A6B8]' 
-                          : 'bg-white text-slate-900 shadow-sm hover:shadow-md border border-slate-200/90'
-                      }`}
-                    >
-                      {isPackage && (
-                        <div className="absolute -top-3 right-4 bg-[#78A6B8] text-slate-950 text-[10px] font-mono font-extrabold uppercase px-2.5 py-0.5 rounded-full shadow-xs">
-                          Most Popular Package
-                        </div>
-                      )}
-
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className={`px-2 py-0.5 rounded font-mono text-[10px] font-bold ${
-                            isPackage 
-                              ? 'bg-white/10 text-white border border-white/20' 
-                              : 'bg-[#263B52]/10 text-[#263B52] border border-[#263B52]/20'
-                          }`}>
-                            {service.code.replace(/_/g, ' ')}
-                          </span>
-                        </div>
-
-                        <div>
-                          <h3 className={`text-base font-bold leading-snug ${isPackage ? 'text-white' : 'text-slate-900'}`}>
-                            {service.title}
-                          </h3>
-                          <p className={`text-xs mt-2 leading-relaxed ${isPackage ? 'text-slate-200' : 'text-slate-600'}`}>
-                            {service.description}
-                          </p>
-                        </div>
-
-                        <div className={`pt-3 border-t space-y-1.5 text-xs ${isPackage ? 'border-white/15 text-slate-200' : 'border-slate-100 text-slate-600'}`}>
-                          {service.code === 'GREEN_LABOURER_PKG' && (
-                            <>
-                              <div className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-[#78A6B8]" /> Level 1 H&amp;S 1-Day Course</div>
-                              <div className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-[#78A6B8]" /> CITB HS&amp;E Touchscreen Test</div>
-                              <div className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-[#78A6B8]" /> Official 5-Year CSCS Card</div>
-                              <div className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-[#78A6B8]" /> Free Retake Guarantee</div>
-                            </>
-                          )}
-                          {service.code === 'CITB_HSE_TEST' && (
-                            <>
-                              <div className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-500" /> Operatives &amp; Specialists tests</div>
-                              <div className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-500" /> 150+ Pearson VUE UK centres</div>
-                              <div className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-500" /> Immediate score printout</div>
-                            </>
-                          )}
-                          {service.code === 'CSCS_CARD_APP' && (
-                            <>
-                              <div className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-500" /> Express 24–48h processing</div>
-                              <div className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-500" /> Digital smart card access</div>
-                              <div className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-500" /> Physical NFC card dispatched</div>
-                            </>
-                          )}
-                          {service.code === 'L1_HS_COURSE' && (
-                            <>
-                              <div className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-500" /> Lifetime valid qualification</div>
-                              <div className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-500" /> Classroom or online webinar</div>
-                              <div className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-500" /> Ofqual regulated qualification</div>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className={`pt-5 mt-4 border-t flex items-center justify-between ${isPackage ? 'border-white/20' : 'border-slate-100'}`}>
-                        <div>
-                          <span className={`text-xl font-extrabold font-mono block ${isPackage ? 'text-[#9BC1CF]' : 'text-[#263B52]'}`}>
-                            {service.priceLabel}
-                          </span>
-                          <span className={`text-[10px] ${isPackage ? 'text-slate-300' : 'text-slate-500'}`}>No Hidden Fees</span>
-                        </div>
-
-                        <button
-                          onClick={() => {
-                            let servName = 'Green Labourer Card Package';
-                            if (service.code === 'CITB_HSE_TEST') servName = 'CITB Health, Safety & Environment Test';
-                            else if (service.code === 'CSCS_CARD_APP') servName = 'CSCS Card Application';
-                            else if (service.code === 'L1_HS_COURSE') servName = 'Training Courses';
-                            setIndivForm({ ...indivForm, serviceRequired: servName });
-                            setEmployerForm({ ...employerForm, serviceRequired: servName });
-                            navigateTo('individual-booking');
-                          }}
-                          className={`px-4 py-2 rounded-lg font-bold text-xs transition-all cursor-pointer ${
-                            isPackage 
-                              ? 'bg-white hover:bg-slate-100 text-[#263B52] shadow-sm' 
-                              : 'bg-[#263B52] hover:bg-[#1B2A3B] text-white shadow-xs'
-                          }`}
-                        >
-                          Book Now
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+                {FOUR_CORE_SERVICES.map((service) => (
+                  <div 
+                    key={service.code}
+                    className="bg-white text-slate-900 rounded-2xl p-6 shadow-xs border border-slate-200/90 flex flex-col justify-start transition-all hover:shadow-md"
+                  >
+                    <h3 className="text-base font-bold text-slate-900 leading-snug">
+                      {service.title}
+                    </h3>
+                    <p className="text-xs mt-2.5 leading-relaxed text-slate-600">
+                      {service.description}
+                    </p>
+                  </div>
+                ))}
               </div>
             </section>
 
-            {/* AIRCALL TELEPHONY HOTLINE BANNER */}
+            {/* TELEPHONY HOTLINE BANNER */}
             <section className="max-w-7xl mx-auto px-4 sm:px-8">
               <div className="bg-gradient-to-r from-[#263B52] to-[#1B2A3B] rounded-2xl p-6 sm:p-10 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 border border-[#78A6B8]/30">
                 <div className="space-y-2 text-center md:text-left">
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#78A6B8]/20 text-[#9BC1CF] text-[11px] font-mono">
-                    <PhoneCall className="w-3.5 h-3.5 text-[#78A6B8]" /> Aircall Smartflow Call Centre
-                  </div>
-                  <h3 className="text-xl sm:text-2xl font-bold">Need Immediate Booking Help or Same-Day Slot?</h3>
+                  <h3 className="text-xl sm:text-2xl font-bold">Need Immediate Booking Help?</h3>
                   <p className="text-slate-300 text-xs sm:text-sm max-w-xl">
-                    Speak directly to our UK health &amp; safety booking coordinators. Dedicated lines for tradespeople and Tier-1 contractors.
+                    Speak directly to us.
                   </p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0">
                   <a
-                    href="tel:+442036084780"
+                    href="tel:02036084780"
                     className="px-6 py-3.5 rounded-xl bg-white text-[#263B52] hover:bg-slate-100 font-mono font-bold text-sm sm:text-base flex items-center gap-2 shadow-lg transition-all"
                   >
                     <PhoneCall className="w-4 h-4 text-[#78A6B8]" />
-                    <span>+44 20 3608 4780</span>
+                    <span> +442036084780 </span>
                   </a>
                   <button
                     onClick={() => navigateTo('contact')}
@@ -744,16 +690,13 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
         )}
 
         {/* ========================================================================= */}
-        {/* PAGE 2: SERVICES & COURSE DIRECTORY                                      */}
+        {/* PAGE 2: SERVICES & PRICING                                                */}
         {/* ========================================================================= */}
         {currentPage === 'services' && (
           <div className="max-w-7xl mx-auto px-4 sm:px-8 py-10 space-y-8">
             <div className="space-y-2 border-b border-slate-200 pb-5">
-              <div className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-[#78A6B8]">
-                <Award className="w-4 h-4" /> CONSTRUCTION COURSE DIRECTORY
-              </div>
-              <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-950">Accredited Health &amp; Safety Courses</h1>
-              <p className="text-slate-600 text-xs sm:text-sm">Find and book Ofqual-regulated certifications across 150+ UK Pearson testing hubs.</p>
+              <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-950">Explore Our Current Services</h1>
+              <p className="text-slate-600 text-xs sm:text-sm">Find and book your required services.</p>
             </div>
 
             {/* Filter & Search Toolbar */}
@@ -789,28 +732,14 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
                   className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col justify-between hover:shadow-md transition-all space-y-4"
                 >
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-mono text-[10px] font-bold px-2.5 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200">
-                        {course.cert}
-                      </span>
-                    </div>
-
                     <h3 className="text-base font-bold text-slate-900 leading-snug">
                       {course.title}
                     </h3>
 
-                    <p className="text-xs text-slate-600 leading-relaxed">
-                      {course.description}
+                    <p className="text-xs text-slate-600 leading-relaxed flex items-center gap-1.5">
+                      <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>{course.description}</span>
                     </p>
-
-                    <div className="space-y-1 pt-2 border-t border-slate-100 text-[11px] text-slate-600">
-                      {course.features.map((feat, i) => (
-                        <div key={i} className="flex items-center gap-1.5">
-                          <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                          <span>{feat}</span>
-                        </div>
-                      ))}
-                    </div>
                   </div>
 
                   <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
@@ -818,7 +747,7 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
                       <span className="text-lg font-extrabold text-[#263B52] font-mono block">
                         {course.price}
                       </span>
-                      <span className="text-[10px] text-slate-500">Official Fixed Price</span>
+                      <span className="text-[10px] text-slate-500">Price</span>
                     </div>
 
                     <button
@@ -913,6 +842,18 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
                   </div>
 
                   <div>
+                    <label className="block text-slate-700 font-semibold mb-1">Address *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. 128 City Road, London, EC1V 2NX"
+                      value={indivForm.address}
+                      onChange={(e) => setIndivForm({ ...indivForm, address: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 text-xs sm:text-sm focus:ring-2 focus:ring-[#263B52] focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
                     <label className="block text-slate-700 font-semibold mb-1">Service Required *</label>
                     <select
                       value={indivForm.serviceRequired}
@@ -920,10 +861,10 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
                       className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-semibold text-xs sm:text-sm focus:ring-2 focus:ring-[#263B52] focus:outline-none"
                       required
                     >
-                      <option value="CSCS Card Application">CSCS Card Application — £55 + VAT</option>
-                      <option value="CITB Health, Safety & Environment Test">CITB Health, Safety &amp; Environment Test — £50</option>
-                      <option value="Training Courses">Training Courses — £200 + VAT</option>
-                      <option value="Green Labourer Card Package">Green Labourer Card Package — £295 + VAT</option>
+                      <option value="CSCS Card Application">CSCS Card Application — £66 + VAT</option>
+                      <option value="CITB Health, Safety & Environment Test">CITB Health, Safety &amp; Environment Test — £48</option>
+                      <option value="Training Courses">Training Courses — £240 + VAT</option>
+                      <option value="Green Labourer Card Package">Green Labourer Card Package — £342 + VAT</option>
                       <option value="Other (please specify)">Other (please specify)</option>
                     </select>
                   </div>
@@ -990,14 +931,42 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
                   </div>
                 </div>
 
-                <button
-                  type="submit"
-                  className="w-full py-3.5 rounded-xl bg-[#263B52] hover:bg-[#1B2A3B] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
-                  id="submit-book-for-yourself-btn"
-                >
-                  <Send className="w-4 h-4 text-[#78A6B8]" />
-                  <span>Submit Request — Book for Yourself</span>
-                </button>
+                {/* Conditional Pay Now vs Submit Request:
+                    When ENABLE_ONLINE_PAYMENTS is false (current state), "Pay Now" is completely hidden.
+                    When ENABLE_ONLINE_PAYMENTS is true, the customer can pay immediately via Stripe. */}
+                {ENABLE_ONLINE_PAYMENTS ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={(e) => handleIndividualSubmit(e, true)}
+                      className="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
+                      id="stripe-pay-now-individual-btn"
+                    >
+                      <CreditCard className="w-4 h-4 text-emerald-200" />
+                      <span>Pay Now &amp; Confirm ({getCoursePrice(indivForm.serviceRequired).label})</span>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={(e) => handleIndividualSubmit(e, false)}
+                      className="w-full py-3.5 px-4 rounded-xl bg-[#263B52] hover:bg-[#1B2A3B] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
+                    >
+                      <Send className="w-4 h-4 text-[#78A6B8]" />
+                      <span>Submit Request (Pay Later)</span>
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full py-3.5 rounded-xl bg-[#263B52] hover:bg-[#1B2A3B] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
+                    id="submit-book-for-yourself-btn"
+                  >
+                    <Send className="w-4 h-4 text-[#78A6B8]" />
+                    <span>Submit Request — Book for Yourself</span>
+                  </button>
+                )}
               </div>
             </form>
           </div>
@@ -1045,7 +1014,7 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
                       <input
                         type="text"
                         required
-                        placeholder="e.g. Sarah Jenkins"
+                        placeholder="e.g. Ram Wadh"
                         value={employerForm.contactName}
                         onChange={(e) => setEmployerForm({ ...employerForm, contactName: e.target.value })}
                         className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 text-xs sm:text-sm focus:ring-2 focus:ring-[#263B52] focus:outline-none"
@@ -1071,7 +1040,7 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
                       <input
                         type="email"
                         required
-                        placeholder="e.g. s.jenkins@apexconstruction.co.uk"
+                        placeholder="e.g. s.ramwadh@apexconstruction.co.uk"
                         value={employerForm.email}
                         onChange={(e) => setEmployerForm({ ...employerForm, email: e.target.value })}
                         className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 text-xs sm:text-sm focus:ring-2 focus:ring-[#263B52] focus:outline-none"
@@ -1125,10 +1094,10 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
                         className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-semibold text-xs sm:text-sm focus:ring-2 focus:ring-[#263B52] focus:outline-none"
                         required
                       >
-                        <option value="CSCS Card Application">CSCS Card Application — £55 + VAT</option>
-                        <option value="CITB Health, Safety & Environment Test">CITB Health, Safety &amp; Environment Test — £50</option>
-                        <option value="Training Courses">Training Courses — £200 + VAT</option>
-                        <option value="Green Labourer Card Package">Green Labourer Card Package — £295 + VAT</option>
+                        <option value="CSCS Card Application">CSCS Card Application — £66 + VAT</option>
+                        <option value="CITB Health, Safety & Environment Test">CITB Health, Safety &amp; Environment Test — £48</option>
+                        <option value="Training Courses">Training Courses — £240 + VAT</option>
+                        <option value="Green Labourer Card Package">Green Labourer Card Package — £342 + VAT</option>
                         <option value="Other (please specify)">Other (please specify)</option>
                       </select>
                     </div>
@@ -1235,14 +1204,42 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
                   </div>
                 </div>
 
-                <button
-                  type="submit"
-                  className="w-full py-3.5 rounded-xl bg-[#263B52] hover:bg-[#1B2A3B] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
-                  id="submit-book-for-employees-btn"
-                >
-                  <Send className="w-4 h-4 text-[#78A6B8]" />
-                  <span>Submit Request — Book for Your Employees</span>
-                </button>
+                {/* Conditional Pay Now vs Submit Request:
+                    When ENABLE_ONLINE_PAYMENTS is false (current state), "Pay Now" is completely hidden.
+                    When ENABLE_ONLINE_PAYMENTS is true, corporate users can pay immediately via Stripe. */}
+                {ENABLE_ONLINE_PAYMENTS ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={(e) => handleEmployerSubmit(e, true)}
+                      className="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
+                      id="stripe-pay-now-employer-btn"
+                    >
+                      <CreditCard className="w-4 h-4 text-emerald-200" />
+                      <span>Pay Now by Corporate Card</span>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={(e) => handleEmployerSubmit(e, false)}
+                      className="w-full py-3.5 px-4 rounded-xl bg-[#263B52] hover:bg-[#1B2A3B] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
+                    >
+                      <Send className="w-4 h-4 text-[#78A6B8]" />
+                      <span>Submit Request (Pay Later / Invoice)</span>
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full py-3.5 rounded-xl bg-[#263B52] hover:bg-[#1B2A3B] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
+                    id="submit-book-for-employees-btn"
+                  >
+                    <Send className="w-4 h-4 text-[#78A6B8]" />
+                    <span>Submit Request — Book for Your Employees</span>
+                  </button>
+                )}
               </div>
             </form>
           </div>
@@ -1265,7 +1262,7 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
 
             <div className="bg-white rounded-xl border border-slate-200 p-6 sm:p-8 space-y-6 text-sm sm:text-base text-slate-700 leading-relaxed shadow-xs">
               <p>
-                Site Safe Alliance Ltd is an independent administrative support company helping individuals and employers across the UK arrange CITB tests, CSCS card applications and accredited construction training.
+                Site Safe Alliance Ltd is a UK-registered administrative and business support service provider. We assist customers in the UK with booking CITB tests and training courses and with CSCS card applications. Our services are focused on administration and customer support, and we charge an administration/service fee for the assistance provided.
               </p>
 
               <div className="pt-6 border-t border-slate-200 space-y-2">
@@ -1273,7 +1270,7 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
                   Important information
                 </h2>
                 <p className="text-sm text-slate-600 leading-relaxed">
-                  Site Safe Alliance Ltd is an independent administrative support provider and is not affiliated with or endorsed by CITB, CSCS or any official regulatory body. We assist with bookings and applications only—we do not conduct tests, issue cards or guarantee outcomes.
+                  Site Safe Alliance Ltd is an independent administrative support company helping individuals and employers across the UK arrange CITB tests, CSCS card applications and accredited construction training.
                 </p>
               </div>
             </div>
@@ -1290,67 +1287,78 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
         )}
 
         {/* ========================================================================= */}
-        {/* PAGE 6: CONTACT & CENTRES                                                */}
+        {/* PAGE 6: CONTACT                                                           */}
         {/* ========================================================================= */}
         {currentPage === 'contact' && (
           <div className="max-w-5xl mx-auto px-4 sm:px-8 py-10 space-y-8">
             <div className="border-b border-slate-200 pb-4">
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-950">Contact &amp; Regional Training Centres</h1>
-              <p className="text-slate-600 text-xs sm:text-sm mt-1">Centralised national booking desk and regional examination hubs.</p>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-950">Contact</h1>
+              <p className="text-slate-600 text-xs sm:text-sm mt-1">Get in touch with the Site Safe Alliance team.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {/* Contact Information */}
               <div className="space-y-6">
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-                  <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                    <PhoneCall className="w-5 h-5 text-[#78A6B8]" />
-                    Central Inbound Telephony Desk
+                <div className="bg-white p-6 sm:p-7 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                  <h3 className="text-base font-bold text-slate-900 pb-3 border-b border-slate-100 flex items-center gap-2">
+                    <Building2 className="w-5 h-5 text-[#78A6B8]" />
+                    <span>Contact Details</span>
                   </h3>
-                  <div className="space-y-3 text-xs">
-                    <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 flex justify-between items-center">
-                      <span className="text-slate-600">Aircall Central Hotline:</span>
-                      <a href="tel:+442036084780" className="font-mono text-base font-extrabold text-[#263B52] hover:underline">
-                        +44 20 3608 4780
-                      </a>
-                    </div>
-                    <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 flex justify-between items-center">
-                      <span className="text-slate-600">Booking Enquiries:</span>
-                      <span className="font-mono text-slate-800 font-semibold">bookings@sitesafealliance.co.uk</span>
-                    </div>
-                    <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 flex justify-between items-center">
-                      <span className="text-slate-600">Operating Hours:</span>
-                      <span className="font-mono text-slate-800">Mon–Fri 07:30–18:30 GMT</span>
-                    </div>
-                  </div>
-                </div>
 
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-3">
-                  <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                    <MapPin className="w-5 h-5 text-[#78A6B8]" />
-                    Flagship Regional Examination Hubs
-                  </h3>
-                  <div className="space-y-2 text-xs text-slate-600">
-                    <div className="p-2.5 rounded bg-slate-50 border border-slate-200">
-                      <strong className="text-slate-900 block">London Headquarters &amp; Test Suite:</strong>
-                      25 Canada Square, Canary Wharf, London E14 5LB
+                  <div className="space-y-3.5 text-xs">
+                    {/* Business Address */}
+                    <div className="flex items-start gap-3 p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                      <MapPin className="w-4 h-4 text-[#78A6B8] shrink-0 mt-0.5" />
+                      <div>
+                        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Business Address</div>
+                        <div className="text-slate-900 font-semibold leading-relaxed">
+                          128 City Road<br />
+                          London<br />
+                          EC1V 2NX
+                        </div>
+                      </div>
                     </div>
-                    <div className="p-2.5 rounded bg-slate-50 border border-slate-200">
-                      <strong className="text-slate-900 block">Midlands Training Centre:</strong>
-                      Fort Dunlop, Fort Parkway, Birmingham B24 9FD
+
+                    {/* Email */}
+                    <div className="flex items-start gap-3 p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                      <Mail className="w-4 h-4 text-[#78A6B8] shrink-0 mt-0.5" />
+                      <div>
+                        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Email</div>
+                        <a href="mailto:info@sitesafealliance.co.uk" className="text-slate-900 font-semibold font-mono hover:text-[#263B52] hover:underline">
+                          info@sitesafealliance.co.uk
+                        </a>
+                      </div>
                     </div>
-                    <div className="p-2.5 rounded bg-slate-50 border border-slate-200">
-                      <strong className="text-slate-900 block">North West Examination Hub:</strong>
-                      MediaCityUK, Salford Quays, Manchester M50 2EQ
+
+                    {/* Phone */}
+                    <div className="flex items-start gap-3 p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                      <PhoneCall className="w-4 h-4 text-[#78A6B8] shrink-0 mt-0.5" />
+                      <div>
+                        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Phone</div>
+                        <a href="tel:02036084780" className="text-slate-900 font-extrabold font-mono text-sm hover:text-[#263B52] hover:underline">
+                          020 3608 4780
+                        </a>
+                      </div>
+                    </div>
+
+                    {/* Hours */}
+                    <div className="flex items-start gap-3 p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                      <Calendar className="w-4 h-4 text-[#78A6B8] shrink-0 mt-0.5" />
+                      <div>
+                        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Hours</div>
+                        <div className="text-slate-900 font-semibold">
+                          Mon — Fri · 08:00 — 18:00 GMT
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* 15-Minute Priority Callback Request Form */}
+              {/* Priority Callback Request Form */}
               <div className="bg-white p-6 sm:p-7 rounded-2xl border border-slate-200 shadow-xs space-y-4">
                 <div>
-                  <h3 className="text-base font-bold text-slate-900">Request 15-Minute Priority Callback</h3>
+                  <h3 className="text-base font-bold text-slate-900">Request Priority Callback</h3>
                   <p className="text-xs text-slate-500 mt-0.5">Need immediate advice or a bespoke group quote? Leave your number.</p>
                 </div>
 
@@ -1373,7 +1381,7 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
                       required 
                       value={contactForm.phone}
                       onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
-                      placeholder="e.g. +44 7123 456789" 
+                      placeholder="e.g. 020 3608 4780" 
                       className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#263B52] font-mono" 
                     />
                   </div>
@@ -1730,52 +1738,53 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
       {/* 4. CLEAN PRODUCTION FOOTER */}
       <footer className="bg-slate-900 text-slate-400 text-xs border-t border-slate-800 py-10 px-4 sm:px-8">
         <div className="max-w-7xl mx-auto space-y-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6 pb-6 border-b border-slate-800">
-            {/* Simple Navigation Links: About Us, Privacy Policy, Terms & Conditions */}
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-6 sm:gap-8 text-xs">
-              <button
-                onClick={() => navigateTo('about')}
-                className="text-slate-300 hover:text-white transition-colors cursor-pointer font-medium"
-              >
-                About Us
-              </button>
-              <button
-                onClick={() => navigateTo('privacy')}
-                className="text-slate-300 hover:text-white transition-colors cursor-pointer font-medium"
-              >
-                Privacy Policy
-              </button>
-              <button
-                onClick={() => navigateTo('terms')}
-                className="text-slate-300 hover:text-white transition-colors cursor-pointer font-medium"
-              >
-                Terms &amp; Conditions
-              </button>
-              <button
-                onClick={() => navigateTo('contact')}
-                className="text-slate-400 hover:text-white transition-colors cursor-pointer"
-              >
-                Contact
-              </button>
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-6 pb-6 border-b border-slate-800">
+            {/* Site Name and Navigation Links */}
+            <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-10 text-center sm:text-left">
+              <span className="text-base sm:text-lg font-extrabold text-white tracking-wide">
+                Site Safe Alliance Ltd
+              </span>
+              <nav aria-label="Footer Navigation" className="flex flex-wrap items-center justify-center gap-6 sm:gap-8 text-xs">
+                <button
+                  onClick={() => navigateTo('about')}
+                  className="text-slate-300 hover:text-white transition-colors cursor-pointer font-medium"
+                >
+                  About Us
+                </button>
+                <button
+                  onClick={() => navigateTo('privacy')}
+                  className="text-slate-300 hover:text-white transition-colors cursor-pointer font-medium"
+                >
+                  Privacy Policy
+                </button>
+                <button
+                  onClick={() => navigateTo('terms')}
+                  className="text-slate-300 hover:text-white transition-colors cursor-pointer font-medium"
+                >
+                  Terms &amp; Conditions
+                </button>
+                <button
+                  onClick={() => navigateTo('contact')}
+                  className="text-slate-300 hover:text-white transition-colors cursor-pointer font-medium"
+                >
+                  Contact
+                </button>
+              </nav>
             </div>
 
             {/* Direct Telephone Support */}
-            <div className="flex items-center gap-2 text-xs">
+            <div className="flex items-center gap-2.5 px-4 py-2 rounded-xl bg-slate-800/80 border border-slate-700/60 shadow-xs">
               <PhoneCall className="w-3.5 h-3.5 text-[#78A6B8]" />
-              <span className="text-slate-400">National Booking Desk:</span>
-              <a href="tel:+442036084780" className="font-mono text-white font-bold hover:underline">
-                +44 20 3608 4780
+              <a href="tel:02036084780" className="font-mono text-white font-bold hover:text-[#78A6B8] transition-colors text-sm tracking-wide">
+                020 3608 4780
               </a>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500">
-            <div>
-              &copy; 2026 Site Safe Alliance Ltd. All rights reserved. Registered in England &amp; Wales.
-            </div>
-            <div className="text-slate-400 text-[10px]">
-              Independent Administrative Support &amp; CITB Booking Service
-            </div>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400 text-center sm:text-left">
+            <p className="font-medium text-slate-400">
+              Site Safe Alliance Ltd &middot; &copy; 2026. All rights reserved. Registered in England &amp; Wales.
+            </p>
           </div>
         </div>
       </footer>
@@ -1789,10 +1798,10 @@ export const WebsiteView: React.FC<WebsiteViewProps> = ({ initialPage = 'home' }
           <User className="w-3.5 h-3.5 text-[#78A6B8]" /> Book Course
         </button>
         <a
-          href="tel:+442036084780"
+          href="tel:02036084780"
           className="px-4 py-2.5 rounded-lg bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm font-mono"
         >
-          <PhoneCall className="w-3.5 h-3.5" /> Call +44 20 3608 4780
+          <PhoneCall className="w-3.5 h-3.5" /> Call 020 3608 4780
         </a>
       </div>
     </div>

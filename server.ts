@@ -1,11 +1,26 @@
 import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
+import Stripe from 'stripe';
+
+// Lazy Stripe initialization to prevent startup crash if keys are not yet provided
+let stripeClient: Stripe | null = null;
+function getStripe(): Stripe {
+  if (!stripeClient) {
+    const key = process.env.STRIPE_SECRET_KEY;
+    if (!key) {
+      throw new Error('STRIPE_SECRET_KEY environment variable is not configured');
+    }
+    stripeClient = new Stripe(key);
+  }
+  return stripeClient;
+}
 
 interface IndividualBookingPayload {
   fullName: string;
   email: string;
   phone: string;
+  address?: string;
   serviceRequired: string;
   otherService?: string;
   preferredDate?: string;
@@ -230,7 +245,7 @@ async function startServer() {
     return res.status(201).json({
       success: true,
       referenceNumber,
-      message: 'Thank you! A senior booking coordinator will call you back within 15 minutes.'
+      message: 'Thank you! A senior booking coordinator will call you back regarding your enquiry.'
     });
   });
 
@@ -241,6 +256,119 @@ async function startServer() {
       totalCount: bookingsStore.length,
       bookings: bookingsStore.slice(0, 20)
     });
+  });
+
+  // ==========================================
+  // 7. STRIPE PAYMENT GATEWAY INTEGRATION
+  // (Pre-wired & in standby mode until enabled)
+  // ==========================================
+
+  // Payment Status & Configuration
+  app.get('/api/payments/config', (req, res) => {
+    const isEnabled = process.env.ENABLE_ONLINE_PAYMENTS === 'true';
+    const hasSecretKey = Boolean(process.env.STRIPE_SECRET_KEY);
+    const publishableKey = process.env.STRIPE_PUBLISHABLE_KEY || '';
+
+    res.json({
+      success: true,
+      enabled: isEnabled,
+      stripeConfigured: hasSecretKey,
+      publishableKey: isEnabled ? publishableKey : undefined,
+      status: isEnabled
+        ? (hasSecretKey ? 'active' : 'keys_required')
+        : 'standby_hidden'
+    });
+  });
+
+  // Create Stripe Checkout Session
+  app.post('/api/payments/create-checkout-session', async (req, res) => {
+    try {
+      const {
+        bookingId,
+        customerName,
+        customerEmail,
+        customerPhone,
+        serviceRequired,
+        amountGbp,
+        returnUrl
+      } = req.body;
+
+      if (!bookingId || !customerName || !customerEmail || !amountGbp) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing required checkout parameters: bookingId, customerName, customerEmail, amountGbp.'
+        });
+      }
+
+      if (!process.env.STRIPE_SECRET_KEY) {
+        return res.status(503).json({
+          success: false,
+          error: 'Stripe integration is currently in standby mode (STRIPE_SECRET_KEY is not yet configured in environment secrets).',
+          standby: true
+        });
+      }
+
+      const stripe = getStripe();
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        mode: 'payment',
+        customer_email: customerEmail,
+        client_reference_id: bookingId,
+        metadata: {
+          bookingId: String(bookingId),
+          customerName: String(customerName),
+          customerPhone: String(customerPhone || ''),
+          serviceRequired: String(serviceRequired || 'Construction Certification Service')
+        },
+        line_items: [
+          {
+            price_data: {
+              currency: 'gbp',
+              product_data: {
+                name: `Site Safe Alliance: ${serviceRequired || 'Certification Booking'}`,
+                description: `Application Reference: ${bookingId} for ${customerName}`
+              },
+              unit_amount: Math.round(Number(amountGbp) * 100)
+            },
+            quantity: 1
+          }
+        ],
+        success_url: `${returnUrl || 'http://localhost:3000'}?payment=success&ref=${bookingId}&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${returnUrl || 'http://localhost:3000'}?payment=cancelled&ref=${bookingId}`
+      });
+
+      return res.json({
+        success: true,
+        sessionId: session.id,
+        checkoutUrl: session.url
+      });
+    } catch (error: any) {
+      console.error('[STRIPE CHECKOUT ERROR]', error);
+      return res.status(500).json({
+        success: false,
+        error: error.message || 'Error creating Stripe checkout session'
+      });
+    }
+  });
+
+  // Verify Session on Return
+  app.get('/api/payments/verify-session/:sessionId', async (req, res) => {
+    try {
+      if (!process.env.STRIPE_SECRET_KEY) {
+        return res.status(503).json({ success: false, error: 'Stripe key not configured' });
+      }
+      const stripe = getStripe();
+      const session = await stripe.checkout.sessions.retrieve(req.params.sessionId);
+      return res.json({
+        success: true,
+        status: session.status,
+        paymentStatus: session.payment_status,
+        customerEmail: session.customer_details?.email,
+        bookingRef: session.client_reference_id
+      });
+    } catch (error: any) {
+      return res.status(500).json({ success: false, error: error.message });
+    }
   });
 
   // ==========================================
